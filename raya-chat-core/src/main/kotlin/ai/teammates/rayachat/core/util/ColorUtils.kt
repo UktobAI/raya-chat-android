@@ -24,7 +24,7 @@ fun getContrastColor(hex: String): String =
     if (isDarkColor(hex)) "#FFFFFF" else "#1A1A1A"
 
 /** Parse a hex color string (#RGB, #RRGGBB, or RRGGBB) into an Int, or null if invalid. */
-internal fun parseHexColor(hex: String): Int? {
+fun parseHexColor(hex: String): Int? {
     val cleaned = hex.removePrefix("#")
     return when (cleaned.length) {
         3 -> {

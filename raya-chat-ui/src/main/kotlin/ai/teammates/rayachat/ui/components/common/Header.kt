@@ -1,0 +1,91 @@
+package ai.teammates.rayachat.ui.components.common
+
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.dp
+import coil.compose.rememberAsyncImagePainter
+import ai.teammates.rayachat.core.Constants
+import ai.teammates.rayachat.ui.theme.LocalRayaTheme
+
+/**
+ * Gradient header with bot icon and action buttons.
+ * Used on Form and Chat screens.
+ */
+@Composable
+fun Header(
+    botIcon: String?,
+    statusBarHeight: Int = 0,
+    showBackButton: Boolean = false,
+    showCloseButton: Boolean = true,
+    onBack: (() -> Unit)? = null,
+    onClose: (() -> Unit)? = null,
+) {
+    val theme = LocalRayaTheme.current
+    val iconColor = theme.gradientForeground
+    val avatarUrl = botIcon?.ifBlank { null } ?: Constants.DEFAULT_BOT_AVATAR
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(theme.gradientColor)
+            .padding(top = statusBarHeight.dp)
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            // Left: back button + bot icon
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (showBackButton && onBack != null) {
+                    IconButton(onClick = onBack, modifier = Modifier.size(32.dp)) {
+                        Icon(
+                            imageVector = RayaIcons.chevronLeft(iconColor, 2f),
+                            contentDescription = "Back",
+                            tint = iconColor,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                }
+                // Bot icon with white container
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.9f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Image(
+                        painter = rememberAsyncImagePainter(avatarUrl),
+                        contentDescription = "Bot",
+                        modifier = Modifier.size(30.dp).clip(CircleShape),
+                        contentScale = ContentScale.Fit,
+                    )
+                }
+            }
+
+            // Right: close button
+            if (showCloseButton && onClose != null) {
+                IconButton(onClick = onClose, modifier = Modifier.size(32.dp)) {
+                    Icon(
+                        imageVector = RayaIcons.close(iconColor, 2f),
+                        contentDescription = "Close",
+                        tint = iconColor,
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
+            }
+        }
+    }
+}

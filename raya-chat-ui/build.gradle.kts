@@ -36,8 +36,11 @@ android {
 }
 
 dependencies {
-    // Core module
-    implementation(project(":raya-chat-core"))
+    // Core module (brings in models + serialization transitively)
+    api(project(":raya-chat-core"))
+
+    // Serialization — needed for deserializing attachments JSON in MessageBubble
+    implementation(libs.serialization.json)
 
     // Compose
     implementation(platform(libs.compose.bom))
