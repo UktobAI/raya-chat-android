@@ -60,6 +60,12 @@ dependencies {
     // Lifecycle
     implementation(libs.lifecycle.runtime)
 
+    // Material (for BottomSheetDialogFragment)
+    implementation("com.google.android.material:material:1.12.0")
+
+    // Fragment KTX (for bundleOf)
+    implementation("androidx.fragment:fragment-ktx:1.8.5")
+
     // Testing
     testImplementation(libs.junit)
     testImplementation(libs.truth)
