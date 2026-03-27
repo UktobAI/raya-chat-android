@@ -51,6 +51,7 @@ class RayaChatClient(
     private var messageHandler: MessageHandler? = null
     private var lifecycleObserver: AppLifecycleObserver? = null
     private var sessionId: String = ""
+    private var currentUserInfo: UserInfo = UserInfo() // Stored for URL reconstruction on reconnect
 
     // ── Public State ──
 
@@ -99,6 +100,9 @@ class RayaChatClient(
      * @param botConfig Bot configuration — pass this so the initial bot message appears.
      */
     suspend fun connect(userInfo: UserInfo, botConfig: BotConfigProps? = null) {
+        // Store userInfo for URL reconstruction on reconnect
+        currentUserInfo = userInfo
+
         // Restore session ID from storage (empty on first connect)
         sessionId = prefStorage.getSessionId()
 
@@ -282,6 +286,7 @@ class RayaChatClient(
         networkMonitor.stop()
 
         sessionId = ""
+        currentUserInfo = UserInfo()
 
         // Clear all state
         _messages.value = emptyList()
@@ -397,6 +402,10 @@ class RayaChatClient(
         override fun onSessionUpdate(sessionId: String) {
             this@RayaChatClient.sessionId = sessionId
             prefStorage.setSessionId(sessionId)
+            // Update WebSocket URL so reconnection uses the correct session ID
+            val newUrl = apiClient.constructWebSocketUrl(sessionId, currentUserInfo)
+            wsManager?.updateUrl(newUrl)
+            android.util.Log.d(TAG, "Session ID updated: $sessionId — WS URL refreshed")
         }
 
         override fun onAttachments(attachments: List<String>, type: String) {
