@@ -38,11 +38,19 @@ android {
 
 dependencies {
     implementation(project(":raya-chat-ui"))
+    // Core module directly — for headless demo (Mode 4)
+    implementation(project(":raya-chat-core"))
 
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
     implementation(libs.compose.material3)
+    implementation(libs.compose.foundation)
     implementation(libs.compose.activity)
     implementation(libs.compose.tooling.preview)
     debugImplementation(libs.compose.tooling)
+
+    // AppCompat for Fragment demo (Mode 2)
+    implementation("androidx.appcompat:appcompat:1.7.0")
+    // Material for AppCompat theme
+    implementation("com.google.android.material:material:1.12.0")
 }

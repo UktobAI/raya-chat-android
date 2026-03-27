@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.RayaChatSample" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- AppCompat theme for FragmentDemoActivity (AppCompatActivity requires AppCompat theme) -->
+    <style name="Theme.RayaChatSample.AppCompat" parent="Theme.MaterialComponents.Light.NoActionBar" />
 </resources>
