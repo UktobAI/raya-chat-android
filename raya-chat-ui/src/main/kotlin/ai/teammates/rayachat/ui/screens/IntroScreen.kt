@@ -69,19 +69,19 @@ internal fun IntroScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    // Avatar
+                    // Avatar — white circle with bot icon inside
                     Box(
                         modifier = Modifier
                             .size(56.dp)
+                            .shadow(4.dp, CircleShape)
                             .clip(CircleShape)
-                            .background(Color.White.copy(alpha = 0.95f))
-                            .shadow(4.dp, CircleShape),
+                            .background(Color.White),
                         contentAlignment = Alignment.Center,
                     ) {
                         Image(
                             painter = rememberAsyncImagePainter(avatarUrl),
                             contentDescription = "Bot avatar",
-                            modifier = Modifier.size(48.dp).clip(CircleShape),
+                            modifier = Modifier.size(36.dp), // smaller icon inside white circle
                             contentScale = ContentScale.Fit,
                         )
                     }

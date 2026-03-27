@@ -74,14 +74,16 @@ fun EndChatModal(
 
                 Spacer(Modifier.height(32.dp))
 
-                // Buttons
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                // Buttons — stacked vertically, full width
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
                     OutlinedButton(
                         onClick = onCancel,
                         shape = RoundedCornerShape(50),
                         border = BorderStroke(1.5.dp, theme.border),
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(vertical = 14.dp),
+                        modifier = Modifier.fillMaxWidth().height(52.dp),
                     ) {
                         Text(Strings.get("cancel", locale), style = RayaTypography.bodyBold, color = theme.foreground)
                     }
@@ -89,8 +91,7 @@ fun EndChatModal(
                         onClick = onEndSession,
                         shape = RoundedCornerShape(50),
                         colors = ButtonDefaults.buttonColors(containerColor = theme.gradientColor),
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(vertical = 14.dp),
+                        modifier = Modifier.fillMaxWidth().height(52.dp),
                     ) {
                         Text(Strings.get("end_session", locale), style = RayaTypography.bodyBold, color = theme.gradientForeground)
                     }
