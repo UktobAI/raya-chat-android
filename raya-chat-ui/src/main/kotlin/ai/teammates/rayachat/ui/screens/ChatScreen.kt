@@ -14,6 +14,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
+import kotlinx.coroutines.launch
 import ai.teammates.rayachat.core.Constants
 import ai.teammates.rayachat.core.ImagePayload
 import ai.teammates.rayachat.core.models.*
@@ -54,6 +55,7 @@ internal fun ChatScreen(
     val locale = theme.locale
     val keyboardController = LocalSoftwareKeyboardController.current
     val chatIcon = botConfig.chatboxChatIcon
+    val scope = rememberCoroutineScope()
 
     // Full-screen image viewer state
     var fullScreenImage by remember { mutableStateOf<String?>(null) }
@@ -168,6 +170,11 @@ internal fun ChatScreen(
             },
         )
 
+        // Footer change signal — triggers auto-scroll when presets/typing/commands change
+        val footerSignal = remember(loading, presets.size, commandData, info, showHumanAgentBtn) {
+            loading.hashCode() + presets.size + (commandData?.hashCode() ?: 0) + (info?.hashCode() ?: 0) + showHumanAgentBtn.hashCode()
+        }
+
         // Message list
         Box(modifier = Modifier.weight(1f)) {
             MessageList(
@@ -176,6 +183,7 @@ internal fun ChatScreen(
                 botIcon = chatIcon,
                 onImagePress = { uri -> fullScreenImage = uri },
                 footerContent = footerContent,
+                footerChangeSignal = footerSignal,
             )
         }
 
@@ -183,17 +191,18 @@ internal fun ChatScreen(
         ImageViewer(imageUri = fullScreenImage, onClose = { fullScreenImage = null })
 
         // Composer — always rendered, disabled during commands
+        // Image picker adapter passed directly — composer handles preview + send
         MessageComposer(
             placeholder = if (commandData != null) Strings.get("select_option", locale) else botConfig.chatboxPlaceholder,
             enableVoiceNote = botConfig.enableVoiceNote,
             enableImageUpload = botConfig.enableImageUpload,
-            hasImageAdapter = imagePickerAdapter != null,
+            imagePickerAdapter = imagePickerAdapter,
             hasAudioAdapter = audioRecorderAdapter != null,
             disabled = commandData != null || (loading && currentMessage.isEmpty()),
             locale = locale,
             onSendMessage = onSendMessage,
-            onImagePress = null, // TODO: Wire image picker adapter
-            onMicPress = null, // TODO: Wire audio recorder adapter
+            onSendImages = onSendImages,
+            onMicPress = audioRecorderAdapter?.let { { /* TODO: Show AudioRecorderUI overlay */ } },
         )
     }
 }

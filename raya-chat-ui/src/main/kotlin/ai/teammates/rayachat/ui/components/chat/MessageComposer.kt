@@ -2,6 +2,7 @@ package ai.teammates.rayachat.ui.components.chat
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -11,75 +12,135 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import ai.teammates.rayachat.core.Constants
+import ai.teammates.rayachat.core.ImagePayload
+import ai.teammates.rayachat.core.models.ImageAsset
+import ai.teammates.rayachat.ui.adapters.ImagePickerAdapter
 import ai.teammates.rayachat.ui.components.common.RayaIcons
 import ai.teammates.rayachat.ui.components.common.Strings
+import ai.teammates.rayachat.ui.components.media.ImagePickerPreview
 import ai.teammates.rayachat.ui.theme.IconDefault
 import ai.teammates.rayachat.ui.theme.LocalRayaTheme
 import ai.teammates.rayachat.ui.theme.RayaTypography
+import kotlinx.coroutines.launch
 
 /**
- * Message composer — text input + action buttons.
- * Matches the RN SDK's card-based composer with dynamic button visibility.
+ * Message composer matching the web widget UI.
+ * Card with subtle border, textarea above, action buttons below.
  */
 @Composable
 fun MessageComposer(
     placeholder: String? = null,
     enableVoiceNote: Boolean = true,
     enableImageUpload: Boolean = true,
-    hasImageAdapter: Boolean = false,
+    imagePickerAdapter: ImagePickerAdapter? = null,
     hasAudioAdapter: Boolean = false,
     disabled: Boolean = false,
     locale: String = "en",
     onSendMessage: (String) -> Unit,
-    onImagePress: (() -> Unit)? = null,
+    onSendImages: ((List<ImagePayload>, String) -> Unit)? = null,
     onMicPress: (() -> Unit)? = null,
 ) {
     val theme = LocalRayaTheme.current
+    val scope = rememberCoroutineScope()
     var textFieldValue by remember { mutableStateOf(TextFieldValue("")) }
     var isFocused by remember { mutableStateOf(false) }
+    var selectedImages by remember { mutableStateOf<List<ImageAsset>>(emptyList()) }
 
     val hasText = textFieldValue.text.isNotBlank()
-    val canSend = hasText && !disabled
-
-    val borderColor = if (isFocused) theme.composerBorderFocused else theme.composerBorder
+    val hasImages = selectedImages.isNotEmpty()
+    // Users can always type and select images — only sending is blocked during generation
+    val canSend = (hasText || hasImages) && !disabled
     val actualPlaceholder = placeholder ?: Strings.get("type_message", locale)
 
+    val borderColor = if (isFocused) theme.composerBorderFocused else theme.composerBorder
+    val iconColor = IconDefault // Always full opacity — never disabled visually
+
+    fun handleSend() {
+        if (!canSend) return
+        if (hasImages) {
+            val payloads = selectedImages.map { img ->
+                ImagePayload(name = img.name, type = img.type, base64 = img.base64, uri = img.uri)
+            }
+            onSendImages?.invoke(payloads, textFieldValue.text.trim())
+            selectedImages = emptyList()
+            textFieldValue = TextFieldValue("")
+        } else if (hasText) {
+            onSendMessage(textFieldValue.text.trim())
+            textFieldValue = TextFieldValue("")
+        }
+    }
+
+    fun handlePickImages() {
+        if (disabled || imagePickerAdapter == null) return
+        scope.launch {
+            try {
+                val remaining = Constants.MAX_IMAGES_PER_MESSAGE - selectedImages.size
+                if (remaining <= 0) return@launch
+                val picked = imagePickerAdapter.pickImages(remaining)
+                if (picked.isNotEmpty()) {
+                    selectedImages = (selectedImages + picked).take(Constants.MAX_IMAGES_PER_MESSAGE)
+                }
+            } catch (_: Exception) {}
+        }
+    }
+
+    // Outer container with opaque background
     Column(
-        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(theme.background)
     ) {
-        // Card container
+        // Image preview — above the card
+        if (hasImages) {
+            ImagePickerPreview(
+                images = selectedImages,
+                onRemove = { index ->
+                    selectedImages = selectedImages.filterIndexed { i, _ -> i != index }
+                },
+            )
+        }
+
+        // ── Card ──
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .shadow(4.dp, RoundedCornerShape(12.dp), clip = false)
-                .clip(RoundedCornerShape(12.dp))
+                .padding(horizontal = 16.dp)
+                .padding(top = if (hasImages) 2.dp else 8.dp, bottom = 10.dp)
+                .clip(RoundedCornerShape(14.dp))
                 .background(theme.composerBg)
-                .border(1.5.dp, borderColor, RoundedCornerShape(12.dp))
-                .padding(12.dp),
+                .border(1.dp, borderColor, RoundedCornerShape(14.dp))
+                .padding(horizontal = 14.dp, vertical = 10.dp),
         ) {
-            // Text input
+            // ── Textarea ──
             BasicTextField(
                 value = textFieldValue,
-                onValueChange = { if (!disabled) textFieldValue = it },
-                enabled = !disabled,
-                textStyle = RayaTypography.input.copy(color = theme.foreground),
-                cursorBrush = SolidColor(theme.foreground),
+                onValueChange = { textFieldValue = it },
+                enabled = true, // Always editable — user can type while generation is ongoing
+                textStyle = RayaTypography.body.copy(
+                    color = theme.foreground,
+                    fontSize = 15.sp,
+                    lineHeight = 22.sp,
+                ),
+                cursorBrush = SolidColor(theme.gradientColor),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 40.dp, max = 160.dp)
+                    .heightIn(min = 36.dp, max = 140.dp)
                     .onFocusChanged { isFocused = it.isFocused },
                 decorationBox = { innerTextField ->
-                    Box {
+                    Box(modifier = Modifier.padding(vertical = 2.dp)) {
                         if (textFieldValue.text.isEmpty()) {
                             Text(
-                                text = actualPlaceholder,
-                                style = RayaTypography.input,
+                                actualPlaceholder,
+                                fontSize = 15.sp,
                                 color = theme.mutedForeground,
+                                lineHeight = 22.sp,
                             )
                         }
                         innerTextField()
@@ -87,57 +148,90 @@ fun MessageComposer(
                 },
             )
 
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(8.dp))
 
-            // Button row
+            // ── Button row ──
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                // Left buttons
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                // Left: action icons
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     // Emoji
-                    IconButton(onClick = { /* Focus keyboard */ }, modifier = Modifier.size(28.dp), enabled = !disabled) {
-                        Icon(RayaIcons.smile(IconDefault), "Emoji", tint = IconDefault, modifier = Modifier.size(20.dp))
-                    }
+                    ComposerIconButton(
+                        icon = RayaIcons.smile(iconColor),
+                        contentDescription = "Emoji",
+                        tint = iconColor,
+                        onClick = { },
+                    )
 
-                    // Image upload — hidden if no adapter
-                    if (enableImageUpload && hasImageAdapter) {
-                        IconButton(onClick = { onImagePress?.invoke() }, modifier = Modifier.size(28.dp), enabled = !disabled) {
-                            Icon(RayaIcons.paperclip(IconDefault), "Attach", tint = IconDefault, modifier = Modifier.size(20.dp))
-                        }
+                    // Paperclip — hidden if no adapter
+                    if (enableImageUpload && imagePickerAdapter != null) {
+                        ComposerIconButton(
+                            icon = RayaIcons.paperclip(iconColor),
+                            contentDescription = "Attach",
+                            tint = iconColor,
+                            onClick = ::handlePickImages,
+                        )
                     }
 
                     // Mic — hidden if no adapter
                     if (enableVoiceNote && hasAudioAdapter) {
-                        IconButton(onClick = { onMicPress?.invoke() }, modifier = Modifier.size(28.dp), enabled = !disabled) {
-                            Icon(RayaIcons.mic(IconDefault), "Record", tint = IconDefault, modifier = Modifier.size(20.dp))
-                        }
+                        ComposerIconButton(
+                            icon = RayaIcons.mic(iconColor),
+                            contentDescription = "Record",
+                            tint = iconColor,
+                            onClick = { onMicPress?.invoke() },
+                        )
                     }
                 }
 
-                // Send button
-                IconButton(
-                    onClick = {
-                        if (canSend) {
-                            onSendMessage(textFieldValue.text.trim())
-                            textFieldValue = TextFieldValue("")
-                        }
-                    },
-                    enabled = canSend,
+                // Right: Send button
+                Box(
                     modifier = Modifier
-                        .size(35.dp)
+                        .size(38.dp)
                         .clip(CircleShape)
-                        .background(theme.sendBtnBg),
+                        .background(theme.sendBtnBg)
+                        .clickable(onClick = ::handleSend), // handleSend checks canSend internally
+                    contentAlignment = Alignment.Center,
                 ) {
-                    val sendColor = if (canSend) {
-                        if (theme.isDark) androidx.compose.ui.graphics.Color.White else androidx.compose.ui.graphics.Color(0xFF3F3F46)
-                    } else IconDefault
-
-                    Icon(RayaIcons.send(sendColor), "Send", tint = sendColor, modifier = Modifier.size(20.dp))
+                    val sendIconColor = if (theme.isDark) Color.White else Color(0xFF3F3F46)
+                    Icon(
+                        imageVector = RayaIcons.send(sendIconColor),
+                        contentDescription = "Send",
+                        tint = sendIconColor,
+                        modifier = Modifier.size(18.dp),
+                    )
                 }
             }
         }
+    }
+}
+
+/** Small icon button for the composer — consistent 36dp touch target, 22dp icon. */
+@Composable
+private fun ComposerIconButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    contentDescription: String,
+    tint: Color,
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .size(36.dp)
+            .clip(CircleShape)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = tint,
+            modifier = Modifier.size(22.dp),
+        )
     }
 }

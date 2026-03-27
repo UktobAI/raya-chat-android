@@ -1,20 +1,23 @@
 package ai.teammates.rayachat.ui.components.chat
 
 import androidx.compose.animation.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.*
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import ai.teammates.rayachat.ui.components.common.RayaIcons
 import ai.teammates.rayachat.ui.theme.LocalRayaTheme
 
-/** Floating circular button that appears when user scrolls up. */
 @Composable
 fun ScrollToBottomButton(
     visible: Boolean,
@@ -22,28 +25,32 @@ fun ScrollToBottomButton(
     modifier: Modifier = Modifier,
 ) {
     val theme = LocalRayaTheme.current
+    val bgColor = if (theme.isDark) Color(0xFF27272A) else Color.White
+    val borderColor = if (theme.isDark) Color(0xFF3F3F46) else Color(0xFFD4D4D8)
+    val iconColor = if (theme.isDark) Color(0xFFA1A1AA) else Color(0xFF71717A)
 
-    Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.BottomEnd) {
-        AnimatedVisibility(
-            visible = visible,
-            enter = fadeIn() + slideInVertically { it },
-            exit = fadeOut() + slideOutVertically { it },
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn() + scaleIn(),
+        exit = fadeOut() + scaleOut(),
+        modifier = modifier,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .shadow(2.dp, CircleShape)
+                .clip(CircleShape)
+                .background(bgColor)
+                .border(0.5.dp, borderColor, CircleShape)
+                .clickable(onClick = onClick),
+            contentAlignment = Alignment.Center,
         ) {
-            FloatingActionButton(
-                onClick = onClick,
-                shape = CircleShape,
-                containerColor = theme.surface,
-                contentColor = theme.foreground,
-                modifier = Modifier.padding(16.dp).size(40.dp),
-                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp),
-            ) {
-                Icon(
-                    imageVector = RayaIcons.arrowDown(theme.foreground),
-                    contentDescription = "Scroll to bottom",
-                    tint = theme.foreground,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
+            Icon(
+                imageVector = RayaIcons.arrowDown(iconColor),
+                contentDescription = "Scroll to bottom",
+                tint = iconColor,
+                modifier = Modifier.size(16.dp),
+            )
         }
     }
 }

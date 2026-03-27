@@ -1,10 +1,13 @@
 package ai.teammates.rayachat.core.websocket
 
+import android.util.Log
 import ai.teammates.rayachat.core.Constants
 import ai.teammates.rayachat.core.models.ConnectionStatus
 import kotlinx.coroutines.*
 import okhttp3.*
 import java.util.concurrent.atomic.AtomicBoolean
+
+private const val TAG = "RayaChat.WS"
 
 /**
  * Production-grade WebSocket manager built on OkHttp.
@@ -62,6 +65,7 @@ class WebSocketManager(
         updateStatus(ConnectionStatus.CONNECTING)
 
         try {
+            Log.d(TAG, "→ CONNECT: ${url.take(200)}...")
             val request = Request.Builder().url(url).build()
             webSocket = client.newWebSocket(request, createListener())
         } catch (e: Exception) {
@@ -75,10 +79,17 @@ class WebSocketManager(
     fun send(data: String): Boolean {
         if (destroyed.get()) return false
 
+        // Log outbound payload (truncate large base64)
+        val logData = if (data.length > 500) data.take(500) + "...[${data.length} chars total]" else data
+        Log.d(TAG, "→ SEND (${data.length} chars): $logData")
+
         if (_status == ConnectionStatus.CONNECTED) {
             return try {
-                webSocket?.send(data) ?: false
-            } catch (_: Exception) {
+                val result = webSocket?.send(data) ?: false
+                Log.d(TAG, "→ SEND result: $result")
+                result
+            } catch (e: Exception) {
+                Log.e(TAG, "→ SEND error: ${e.message}")
                 false
             }
         }
@@ -162,6 +173,7 @@ class WebSocketManager(
     private fun createListener() = object : WebSocketListener() {
         override fun onOpen(ws: WebSocket, response: Response) {
             if (destroyed.get()) return
+            Log.d(TAG, "← OPEN: ${response.code} ${response.message}")
             scope.launch(Dispatchers.Main) {
                 reconnectAttempts = 0
                 updateStatus(ConnectionStatus.CONNECTED)
@@ -173,6 +185,10 @@ class WebSocketManager(
 
         override fun onMessage(ws: WebSocket, text: String) {
             if (destroyed.get()) return
+            // Log inbound (truncate long messages)
+            val logText = if (text.length > 300) text.take(300) + "...[${text.length} chars]" else text
+            Log.d(TAG, "← RECV (${text.length} chars): $logText")
+
             scope.launch(Dispatchers.Main) {
                 if (text == "pong") {
                     resetHeartbeatTimeout()
@@ -188,6 +204,7 @@ class WebSocketManager(
 
         override fun onClosed(ws: WebSocket, code: Int, reason: String) {
             if (destroyed.get()) return
+            Log.d(TAG, "← CLOSED: code=$code reason=$reason")
             scope.launch(Dispatchers.Main) {
                 stopHeartbeat()
                 callbacks.onClose(code, reason)
@@ -201,6 +218,7 @@ class WebSocketManager(
 
         override fun onFailure(ws: WebSocket, t: Throwable, response: Response?) {
             if (destroyed.get()) return
+            Log.e(TAG, "← FAILURE: ${t.message}, response=${response?.code}")
             scope.launch(Dispatchers.Main) {
                 stopHeartbeat()
                 callbacks.onError(t.message ?: "WebSocket failure")
