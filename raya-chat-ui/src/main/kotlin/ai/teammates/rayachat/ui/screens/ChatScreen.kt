@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
 import kotlinx.coroutines.launch
 import ai.teammates.rayachat.core.Constants
-import ai.teammates.rayachat.core.ImagePayload
+import ai.teammates.rayachat.core.models.ImagePayload
 import ai.teammates.rayachat.core.models.*
 import ai.teammates.rayachat.ui.adapters.AudioRecorderAdapter
 import ai.teammates.rayachat.ui.adapters.ImagePickerAdapter

@@ -1,8 +1,4 @@
 package ai.teammates.rayachat.ui.adapters
 
-import ai.teammates.rayachat.core.models.ImageAsset
-
-/** Pluggable adapter for image selection. Hidden if not provided. */
-interface ImagePickerAdapter {
-    suspend fun pickImages(maxCount: Int): List<ImageAsset>
-}
+// Re-export from core so both import paths work
+typealias ImagePickerAdapter = ai.teammates.rayachat.core.adapters.ImagePickerAdapter

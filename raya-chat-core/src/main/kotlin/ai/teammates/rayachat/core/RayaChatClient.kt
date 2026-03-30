@@ -51,7 +51,11 @@ class RayaChatClient(
     private var messageHandler: MessageHandler? = null
     private var lifecycleObserver: AppLifecycleObserver? = null
     private var sessionId: String = ""
-    private var currentUserInfo: UserInfo = UserInfo() // Stored for URL reconstruction on reconnect
+    private var currentUserInfo: UserInfo = UserInfo()
+
+    /** Current session ID — empty before first server response. */
+    private val _currentSessionId = MutableStateFlow("")
+    val currentSessionId: StateFlow<String> = _currentSessionId.asStateFlow()
 
     // ── Public State ──
 
@@ -286,6 +290,7 @@ class RayaChatClient(
         networkMonitor.stop()
 
         sessionId = ""
+        _currentSessionId.value = ""
         currentUserInfo = UserInfo()
 
         // Clear all state
@@ -401,6 +406,7 @@ class RayaChatClient(
 
         override fun onSessionUpdate(sessionId: String) {
             this@RayaChatClient.sessionId = sessionId
+            _currentSessionId.value = sessionId
             prefStorage.setSessionId(sessionId)
             // Update WebSocket URL so reconnection uses the correct session ID
             val newUrl = apiClient.constructWebSocketUrl(sessionId, currentUserInfo)
@@ -490,32 +496,4 @@ class RayaChatClient(
     }
 }
 
-// ── Outbound message models ──
-
-@kotlinx.serialization.Serializable
-internal data class OutboundMessage(
-    val content: String,
-    val images: List<OutboundImage>,
-)
-
-@kotlinx.serialization.Serializable
-internal data class OutboundImage(
-    val name: String,
-    val type: String,
-    val data: String,
-)
-
-@kotlinx.serialization.Serializable
-internal data class OutboundCommandResponse(
-    val type: String,
-    val command: String,
-    val response: String,
-)
-
-/** Payload for sending images — passed by the host app. */
-data class ImagePayload(
-    val name: String,
-    val type: String,
-    val base64: String,
-    val uri: String = "",
-)
+// Outbound models moved to ai.teammates.rayachat.core.models.OutboundModels

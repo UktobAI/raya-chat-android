@@ -3,7 +3,7 @@ package ai.teammates.rayachat.ui
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import ai.teammates.rayachat.core.ImagePayload
+import ai.teammates.rayachat.core.models.ImagePayload
 import ai.teammates.rayachat.core.RayaChatClient
 import ai.teammates.rayachat.core.RayaChatConfig
 import ai.teammates.rayachat.core.models.*

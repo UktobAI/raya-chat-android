@@ -19,7 +19,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ai.teammates.rayachat.core.Constants
-import ai.teammates.rayachat.core.ImagePayload
+import ai.teammates.rayachat.core.models.ImagePayload
 import ai.teammates.rayachat.core.models.ImageAsset
 import ai.teammates.rayachat.ui.adapters.ImagePickerAdapter
 import ai.teammates.rayachat.ui.components.common.RayaIcons
