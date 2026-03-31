@@ -67,6 +67,7 @@ internal class RayaChatViewModel(
     // ── Actions ──
 
     fun startChat() {
+        client.clearSessionCloseInfo()
         val config = _botConfig.value
         if (config.enableUserForm) {
             _viewMode.value = ViewMode.FORM

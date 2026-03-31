@@ -104,6 +104,15 @@ class RayaChatClient(
      * @param botConfig Bot configuration — pass this so the initial bot message appears.
      */
     suspend fun connect(userInfo: UserInfo, botConfig: BotConfigProps? = null) {
+        try {
+        connectInternal(userInfo, botConfig)
+        } catch (e: Exception) {
+            android.util.Log.e(TAG, "connect() failed: ${e.message}")
+            config.onError?.invoke("Connection failed: ${e.message}")
+        }
+    }
+
+    private suspend fun connectInternal(userInfo: UserInfo, botConfig: BotConfigProps?) {
         // Store userInfo for URL reconstruction on reconnect
         currentUserInfo = userInfo
 
@@ -418,9 +427,7 @@ class RayaChatClient(
             // Update STORAGE only — not UI state (per NATIVE_SDK_SPEC.md)
             scope.launch(Dispatchers.IO) {
                 try {
-                    val stored = messageDao.getAll()
-                    if (stored.isEmpty()) return@launch
-                    val lastMsg = stored.last()
+                    val lastMsg = messageDao.getLastMessage() ?: return@launch
 
                     if (type == "image" && attachments.isNotEmpty()) {
                         val atts = attachments.map { url ->
@@ -489,7 +496,7 @@ class RayaChatClient(
     }
 
     private fun randomSuffix(): String =
-        (Math.random() * 100000).toLong().toString(36)
+        java.util.UUID.randomUUID().toString().take(8)
 
     companion object {
         private const val TAG = "RayaChatClient"

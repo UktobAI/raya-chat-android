@@ -68,10 +68,7 @@ fun RayaChatWidget(
         RayaChatViewModel(context.applicationContext, config)
     }
 
-    // Cleanup on dispose
-    DisposableEffect(viewModel) {
-        onDispose { viewModel.client.destroy() }
-    }
+    // Cleanup handled by ViewModel.onCleared() — no double-destroy
 
     val botConfig by viewModel.botConfig.collectAsState()
     val configLoading by viewModel.configLoading.collectAsState()

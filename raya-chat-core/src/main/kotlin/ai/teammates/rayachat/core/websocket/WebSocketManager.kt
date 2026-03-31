@@ -36,12 +36,12 @@ class WebSocketManager(
         .retryOnConnectionFailure(false)
         .build()
 
-    private var webSocket: WebSocket? = null
+    @Volatile private var webSocket: WebSocket? = null
     private val destroyed = AtomicBoolean(false)
-    private var manualClose = false
-    private var shouldNotReconnect = false
-    private var reconnectAttempts = 0
-    private var isAppActive = true
+    @Volatile private var manualClose = false
+    @Volatile private var shouldNotReconnect = false
+    @Volatile private var reconnectAttempts = 0
+    @Volatile private var isAppActive = true
 
     private var heartbeatJob: Job? = null
     private var heartbeatTimeoutJob: Job? = null
@@ -65,7 +65,7 @@ class WebSocketManager(
         updateStatus(ConnectionStatus.CONNECTING)
 
         try {
-            Log.d(TAG, "→ CONNECT: ${url.take(200)}...")
+            Log.d(TAG, "→ CONNECT: ${url.substringBefore("&token=").take(100)}...[token redacted]")
             val request = Request.Builder().url(url).build()
             webSocket = client.newWebSocket(request, createListener())
         } catch (e: Exception) {

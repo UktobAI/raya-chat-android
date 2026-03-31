@@ -36,13 +36,14 @@ class ApiClient(
                 .get()
                 .build()
 
-            val response = httpClient.newCall(request).execute()
-            val body = response.body?.string()
+            httpClient.newCall(request).execute().use { response ->
+                val body = response.body?.string()
 
-            if (response.isSuccessful && !body.isNullOrBlank()) {
-                json.decodeFromString<BotConfigProps>(body)
-            } else {
-                BotConfigProps()
+                if (response.isSuccessful && !body.isNullOrBlank()) {
+                    json.decodeFromString<BotConfigProps>(body)
+                } else {
+                    BotConfigProps()
+                }
             }
         } catch (_: Exception) {
             BotConfigProps()
