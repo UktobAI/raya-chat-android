@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -48,6 +49,12 @@ dependencies {
     implementation(libs.compose.activity)
     implementation(libs.compose.tooling.preview)
     debugImplementation(libs.compose.tooling)
+
+    // Coil for image loading (headless demo)
+    implementation(libs.coil.compose)
+
+    // Serialization (headless demo — parsing attachments JSON)
+    implementation(libs.serialization.json)
 
     // AppCompat for Fragment demo (Mode 2)
     implementation("androidx.appcompat:appcompat:1.7.0")
