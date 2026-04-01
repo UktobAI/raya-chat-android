@@ -116,13 +116,16 @@ class RayaChatClient(
         // Store userInfo for URL reconstruction on reconnect
         currentUserInfo = userInfo
 
-        // Restore session ID from storage (empty on first connect)
-        sessionId = prefStorage.getSessionId()
-
-        // Restore messages from Room
-        val storedMessages = withContext(Dispatchers.IO) {
-            messageDao.getAll()
+        // Restore session ID + messages + save user info — ALL on IO thread
+        // EncryptedSharedPreferences does AES crypto synchronously, so must be off Main
+        val (restoredSessionId, storedMessages) = withContext(Dispatchers.IO) {
+            val sid = prefStorage.getSessionId()
+            val msgs = messageDao.getAll()
+            prefStorage.setUserInfo(userInfo)
+            Pair(sid, msgs)
         }
+        sessionId = restoredSessionId
+        _currentSessionId.value = restoredSessionId
         _messages.value = storedMessages
 
         // Add initial bot message if no stored messages
@@ -142,9 +145,6 @@ class RayaChatClient(
                 }
             }
         }
-
-        // Save user info
-        prefStorage.setUserInfo(userInfo)
 
         // Construct WebSocket URL
         val url = apiClient.constructWebSocketUrl(sessionId, userInfo)
@@ -427,7 +427,10 @@ class RayaChatClient(
         override fun onSessionUpdate(sessionId: String) {
             this@RayaChatClient.sessionId = sessionId
             _currentSessionId.value = sessionId
-            prefStorage.setSessionId(sessionId)
+            // Persist on IO — EncryptedSharedPreferences encrypts synchronously
+            scope.launch(Dispatchers.IO) {
+                prefStorage.setSessionId(sessionId)
+            }
             // Update WebSocket URL so reconnection uses the correct session ID
             val newUrl = apiClient.constructWebSocketUrl(sessionId, currentUserInfo)
             wsManager?.updateUrl(newUrl)
