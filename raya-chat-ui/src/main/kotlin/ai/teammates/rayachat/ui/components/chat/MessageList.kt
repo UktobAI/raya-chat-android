@@ -27,38 +27,30 @@ fun MessageList(
     val scope = rememberCoroutineScope()
     var userScrolledUp by remember { mutableStateOf(false) }
 
-    // Build display data
-    val displayData = remember(messages, currentMessage) {
-        val items = messages.toMutableList()
+    val isStreaming = currentMessage.isNotEmpty()
+    val hasFooter = footerContent != null
+
+    // Total item count: messages + streaming bubble (if active) + footer
+    val totalItemCount = messages.size +
+        (if (isStreaming) 1 else 0) +
+        (if (hasFooter) 1 else 0)
+
+    // Streaming message — only the TypeMessage object is rebuilt, NOT the whole list
+    val streamingMessage = remember(currentMessage) {
         if (currentMessage.isNotEmpty()) {
-            items.add(
-                TypeMessage(
-                    id = "__streaming__",
-                    sender = 2,
-                    type = 1,
-                    content = currentMessage,
-                    createdAt = null,
-                )
-            )
-        }
-        items
+            TypeMessage(id = "__streaming__", sender = 2, type = 1, content = currentMessage, createdAt = null)
+        } else null
     }
 
-    val hasFooter = footerContent != null
-    val totalItemCount = displayData.size + if (hasFooter) 1 else 0
-    val isStreaming = currentMessage.isNotEmpty()
-
-    // Detect user scroll — when user drags up, disable auto-scroll
+    // Detect user scroll
     val firstVisibleIndex by remember { derivedStateOf { listState.firstVisibleItemIndex } }
     var prevFirstVisible by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(listState.isScrollInProgress, firstVisibleIndex) {
         if (listState.isScrollInProgress) {
-            // User is actively scrolling — check direction
             if (firstVisibleIndex < prevFirstVisible) {
                 userScrolledUp = true
             }
-            // If user scrolled to the very end, re-enable
             val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()
             if (lastVisible != null && lastVisible.index >= listState.layoutInfo.totalItemsCount - 1) {
                 userScrolledUp = false
@@ -67,16 +59,14 @@ fun MessageList(
         prevFirstVisible = firstVisibleIndex
     }
 
-    // Auto-scroll on new messages — animated (smooth, one-time event)
-    LaunchedEffect(displayData.size) {
+    // Auto-scroll on new messages — animated
+    LaunchedEffect(messages.size) {
         if (!userScrolledUp && totalItemCount > 0) {
             listState.animateScrollToItem(totalItemCount - 1, scrollOffset = Int.MAX_VALUE)
         }
     }
 
-    // Footer changes (presets, commands, typing) + streaming — instant scroll (no animation)
-    // Using instant scroll avoids stutter from repeated animated scrolls during
-    // command UI rendering, streaming chunks, and preset appearance.
+    // Streaming + footer changes — instant scroll
     LaunchedEffect(currentMessage, footerChangeSignal) {
         if (!userScrolledUp && totalItemCount > 0) {
             listState.scrollToItem(totalItemCount - 1, scrollOffset = Int.MAX_VALUE)
@@ -89,7 +79,8 @@ fun MessageList(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(vertical = 8.dp),
         ) {
-            items(items = displayData, key = { it.id }) { message ->
+            // Persisted messages — list reference only changes when a new message is added (not on streaming)
+            items(items = messages, key = { it.id }) { message ->
                 MessageBubble(
                     message = message,
                     botIcon = botIcon,
@@ -97,6 +88,19 @@ fun MessageList(
                 )
             }
 
+            // Streaming message — separate item, only rebuilds when currentMessage changes
+            // No list copy needed — just one TypeMessage object recreated per chunk
+            if (streamingMessage != null) {
+                item(key = "__streaming__") {
+                    MessageBubble(
+                        message = streamingMessage,
+                        botIcon = botIcon,
+                        onImagePress = null,
+                    )
+                }
+            }
+
+            // Footer
             if (footerContent != null) {
                 item(key = "__footer__") {
                     footerContent()
@@ -104,7 +108,6 @@ fun MessageList(
             }
         }
 
-        // Scroll-to-bottom FAB — bottom-right
         ScrollToBottomButton(
             visible = userScrolledUp,
             onClick = {

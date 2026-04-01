@@ -60,95 +60,30 @@ internal fun ChatScreen(
     // Full-screen image viewer state
     var fullScreenImage by remember { mutableStateOf<String?>(null) }
 
-    // ── Command UI ──
-    @Composable
-    fun CommandUI() {
-        val cmd = commandData ?: return
-        when (cmd.content) {
-            "rate_conversation" -> RatingUI(
-                message = cmd.message,
-                options = cmd.options,
-                botIcon = chatIcon,
+
+    // Footer content extracted as a remembered lambda that only changes when relevant state changes.
+    // This prevents MessageList from recomposing on unrelated state changes (e.g., keystrokes).
+    val footerContent: @Composable () -> Unit = remember(
+        loading, currentMessage.isEmpty(), info, showHumanAgentBtn, commandData, presets, messages.size
+    ) {
+        @Composable {
+            ChatFooter(
+                loading = loading,
+                isStreaming = currentMessage.isNotEmpty(),
+                info = info,
+                showHumanAgentBtn = showHumanAgentBtn,
+                commandData = commandData,
+                presets = presets,
+                messagesSize = messages.size,
+                botConfig = botConfig,
+                chatIcon = chatIcon,
                 locale = locale,
-                onRate = { rating -> onSendCommandResponse("rate_conversation", rating) },
+                theme = theme,
+                onSendMessage = onSendMessage,
+                onSendPreset = onSendPreset,
+                onSendCommandResponse = onSendCommandResponse,
+                onEndSession = onEndSession,
             )
-            "submit_feedback" -> FeedbackInput(
-                message = cmd.message,
-                optional = cmd.optional,
-                botIcon = chatIcon,
-                locale = locale,
-                onSubmit = { text -> onSendCommandResponse("submit_feedback", text) },
-            )
-            "feedback_received" -> CountdownClose(
-                message = cmd.message,
-                botIcon = chatIcon,
-                locale = locale,
-                onComplete = onEndSession,
-            )
-            "end_session" -> EndSessionUI(
-                message = cmd.message,
-                options = cmd.options,
-                botIcon = chatIcon,
-                onSelect = { option -> onSendCommandResponse("end_session", option) },
-            )
-        }
-    }
-
-    // ── Footer content (scrolls with messages) ──
-    val footerContent: @Composable () -> Unit = {
-        // Typing indicator
-        if (loading && currentMessage.isEmpty() && info == null) {
-            TypingIndicator(botIcon = chatIcon)
-        }
-
-        // Info display (hourglass + text)
-        if (info != null) {
-            Row(
-                modifier = Modifier.padding(horizontal = 48.dp).padding(bottom = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Image(
-                    painter = rememberAsyncImagePainter("${Constants.ASSET_BASE_URL}/animations/hourGlassAnimation.gif"),
-                    contentDescription = null,
-                    modifier = Modifier.size(30.dp),
-                )
-                Text(info, style = RayaTypography.caption, color = theme.foreground)
-            }
-        }
-
-        // Escalation button
-        if (showHumanAgentBtn) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 0.dp).padding(bottom = 20.dp),
-                horizontalArrangement = Arrangement.End,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .border(1.5.dp, theme.gradientColor, RoundedCornerShape(8.dp))
-                        .clickable { onSendMessage("/human_agent") }
-                        .padding(horizontal = 8.dp, vertical = 8.dp),
-                ) {
-                    Text(
-                        Strings.get("connect_human", locale),
-                        fontSize = 12.sp,
-                        color = theme.gradientColor,
-                    )
-                }
-            }
-        }
-
-        // Command UI
-        CommandUI()
-
-        // Dynamic presets
-        if (presets.isNotEmpty() && commandData == null) {
-            PresetButtons(presets = presets, onPress = onSendPreset)
-        }
-
-        // Static presets from config (only on first message)
-        if (!botConfig.presetOptions.isNullOrEmpty() && messages.size == 1 && commandData == null) {
-            PresetButtons(presets = botConfig.presetOptions, onPress = onSendPreset)
         }
     }
 
@@ -204,5 +139,102 @@ internal fun ChatScreen(
             onSendImages = onSendImages,
             onMicPress = audioRecorderAdapter?.let { { /* TODO: Show AudioRecorderUI overlay */ } },
         )
+    }
+}
+
+/** Extracted footer — stable parameters prevent unnecessary recompositions of MessageList. */
+@Composable
+private fun ChatFooter(
+    loading: Boolean,
+    isStreaming: Boolean,
+    info: String?,
+    showHumanAgentBtn: Boolean,
+    commandData: CommandData?,
+    presets: List<String>,
+    messagesSize: Int,
+    botConfig: BotConfigProps,
+    chatIcon: String?,
+    locale: String,
+    theme: ai.teammates.rayachat.ui.theme.RayaTheme,
+    onSendMessage: (String) -> Unit,
+    onSendPreset: (String) -> Unit,
+    onSendCommandResponse: (String, Any) -> Unit,
+    onEndSession: () -> Unit,
+) {
+    // Typing indicator
+    if (loading && !isStreaming && info == null) {
+        TypingIndicator(botIcon = chatIcon)
+    }
+
+    // Info display (hourglass + text)
+    if (info != null) {
+        Row(
+            modifier = Modifier.padding(horizontal = 48.dp).padding(bottom = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Image(
+                painter = rememberAsyncImagePainter("${Constants.ASSET_BASE_URL}/animations/hourGlassAnimation.gif"),
+                contentDescription = null,
+                modifier = Modifier.size(30.dp),
+            )
+            Text(info, style = RayaTypography.caption, color = theme.foreground)
+        }
+    }
+
+    // Escalation button
+    if (showHumanAgentBtn) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(bottom = 20.dp),
+            horizontalArrangement = Arrangement.End,
+        ) {
+            Box(
+                modifier = Modifier
+                    .border(1.5.dp, theme.gradientColor, RoundedCornerShape(8.dp))
+                    .clickable { onSendMessage("/human_agent") }
+                    .padding(horizontal = 8.dp, vertical = 8.dp),
+            ) {
+                Text(
+                    Strings.get("connect_human", locale),
+                    fontSize = 12.sp,
+                    color = theme.gradientColor,
+                )
+            }
+        }
+    }
+
+    // Command UI
+    if (commandData != null) {
+        when (commandData.content) {
+            "rate_conversation" -> RatingUI(
+                message = commandData.message, options = commandData.options,
+                botIcon = chatIcon, locale = locale,
+                onRate = { rating -> onSendCommandResponse("rate_conversation", rating) },
+            )
+            "submit_feedback" -> FeedbackInput(
+                message = commandData.message, optional = commandData.optional,
+                botIcon = chatIcon, locale = locale,
+                onSubmit = { text -> onSendCommandResponse("submit_feedback", text) },
+            )
+            "feedback_received" -> CountdownClose(
+                message = commandData.message, botIcon = chatIcon,
+                locale = locale, onComplete = onEndSession,
+            )
+            "end_session" -> EndSessionUI(
+                message = commandData.message, options = commandData.options,
+                botIcon = chatIcon,
+                onSelect = { option -> onSendCommandResponse("end_session", option) },
+            )
+        }
+    }
+
+    // Dynamic presets
+    if (presets.isNotEmpty() && commandData == null) {
+        PresetButtons(presets = presets, onPress = onSendPreset)
+    }
+
+    // Static presets from config (only on first message)
+    if (!botConfig.presetOptions.isNullOrEmpty() && messagesSize == 1 && commandData == null) {
+        PresetButtons(presets = botConfig.presetOptions, onPress = onSendPreset)
     }
 }

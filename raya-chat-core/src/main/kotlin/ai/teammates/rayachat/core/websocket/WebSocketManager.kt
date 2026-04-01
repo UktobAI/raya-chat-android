@@ -260,7 +260,7 @@ class WebSocketManager(
             stopHeartbeat()
             webSocket?.let {
                 try {
-                    it.close(Constants.WS_CLOSE_ABNORMAL, "Heartbeat timeout")
+                    it.close(Constants.WS_CLOSE_HEARTBEAT_TIMEOUT, "Heartbeat timeout")
                 } catch (_: Exception) {
                     // Ignore
                 }

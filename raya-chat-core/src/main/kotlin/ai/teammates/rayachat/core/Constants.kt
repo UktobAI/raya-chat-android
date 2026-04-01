@@ -18,7 +18,8 @@ object Constants {
     // WebSocket close codes
     const val WS_CLOSE_NORMAL = 1000
     const val WS_CLOSE_GOING_AWAY = 1001
-    const val WS_CLOSE_ABNORMAL = 1006
+    const val WS_CLOSE_ABNORMAL = 1006      // Reserved — only for reading, never for sending
+    const val WS_CLOSE_HEARTBEAT_TIMEOUT = 4000  // App-specific: heartbeat pong not received
 
     // Storage
     const val MAX_MESSAGES_IN_MEMORY = 500
