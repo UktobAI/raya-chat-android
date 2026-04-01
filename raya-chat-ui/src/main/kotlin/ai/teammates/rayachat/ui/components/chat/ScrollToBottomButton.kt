@@ -6,6 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.remember
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
@@ -28,6 +29,7 @@ fun ScrollToBottomButton(
     val bgColor = if (theme.isDark) Color(0xFF27272A) else Color.White
     val borderColor = if (theme.isDark) Color(0xFF3F3F46) else Color(0xFFD4D4D8)
     val iconColor = if (theme.isDark) Color(0xFFA1A1AA) else Color(0xFF71717A)
+    val arrowIcon = remember(iconColor) { RayaIcons.arrowDown(iconColor) }
 
     AnimatedVisibility(
         visible = visible,
@@ -46,7 +48,7 @@ fun ScrollToBottomButton(
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = RayaIcons.arrowDown(iconColor),
+                imageVector = arrowIcon,
                 contentDescription = "Scroll to bottom",
                 tint = iconColor,
                 modifier = Modifier.size(16.dp),

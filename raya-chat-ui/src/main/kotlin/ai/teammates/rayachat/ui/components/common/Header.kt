@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
+import androidx.compose.runtime.remember
 import ai.teammates.rayachat.core.Constants
 import ai.teammates.rayachat.ui.theme.LocalRayaTheme
 
@@ -34,6 +35,10 @@ fun Header(
     val iconColor = theme.gradientForeground
     val avatarUrl = botIcon?.ifBlank { null } ?: Constants.DEFAULT_BOT_AVATAR
 
+    // Cache icons — only rebuilt when color changes
+    val chevronIcon = remember(iconColor) { RayaIcons.chevronLeft(iconColor, 2f) }
+    val closeIcon = remember(iconColor) { RayaIcons.close(iconColor, 2f) }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -51,7 +56,7 @@ fun Header(
                 if (showBackButton && onBack != null) {
                     IconButton(onClick = onBack, modifier = Modifier.size(32.dp)) {
                         Icon(
-                            imageVector = RayaIcons.chevronLeft(iconColor, 2f),
+                            imageVector = chevronIcon,
                             contentDescription = "Back",
                             tint = iconColor,
                             modifier = Modifier.size(20.dp),
@@ -79,7 +84,7 @@ fun Header(
             if (showCloseButton && onClose != null) {
                 IconButton(onClick = onClose, modifier = Modifier.size(32.dp)) {
                     Icon(
-                        imageVector = RayaIcons.close(iconColor, 2f),
+                        imageVector = closeIcon,
                         contentDescription = "Close",
                         tint = iconColor,
                         modifier = Modifier.size(16.dp),

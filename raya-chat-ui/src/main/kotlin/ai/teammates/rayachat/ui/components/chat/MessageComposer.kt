@@ -151,6 +151,13 @@ fun MessageComposer(
             Spacer(Modifier.height(8.dp))
 
             // ── Button row ──
+            // Cache icons — only rebuilt when color changes, not on every recomposition
+            val smileIcon = remember(iconColor) { RayaIcons.smile(iconColor) }
+            val paperclipIcon = remember(iconColor) { RayaIcons.paperclip(iconColor) }
+            val micIcon = remember(iconColor) { RayaIcons.mic(iconColor) }
+            val sendIconColor = if (theme.isDark) Color.White else Color(0xFF3F3F46)
+            val sendIcon = remember(sendIconColor) { RayaIcons.send(sendIconColor) }
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -163,7 +170,7 @@ fun MessageComposer(
                 ) {
                     // Emoji
                     ComposerIconButton(
-                        icon = RayaIcons.smile(iconColor),
+                        icon = smileIcon,
                         contentDescription = "Emoji",
                         tint = iconColor,
                         onClick = { },
@@ -172,7 +179,7 @@ fun MessageComposer(
                     // Paperclip — hidden if no adapter
                     if (enableImageUpload && imagePickerAdapter != null) {
                         ComposerIconButton(
-                            icon = RayaIcons.paperclip(iconColor),
+                            icon = paperclipIcon,
                             contentDescription = "Attach",
                             tint = iconColor,
                             onClick = ::handlePickImages,
@@ -182,7 +189,7 @@ fun MessageComposer(
                     // Mic — hidden if no adapter
                     if (enableVoiceNote && hasAudioAdapter) {
                         ComposerIconButton(
-                            icon = RayaIcons.mic(iconColor),
+                            icon = micIcon,
                             contentDescription = "Record",
                             tint = iconColor,
                             onClick = { onMicPress?.invoke() },
@@ -196,12 +203,11 @@ fun MessageComposer(
                         .size(38.dp)
                         .clip(CircleShape)
                         .background(theme.sendBtnBg)
-                        .clickable(onClick = ::handleSend), // handleSend checks canSend internally
+                        .clickable(onClick = ::handleSend),
                     contentAlignment = Alignment.Center,
                 ) {
-                    val sendIconColor = if (theme.isDark) Color.White else Color(0xFF3F3F46)
                     Icon(
-                        imageVector = RayaIcons.send(sendIconColor),
+                        imageVector = sendIcon,
                         contentDescription = "Send",
                         tint = sendIconColor,
                         modifier = Modifier.size(18.dp),
