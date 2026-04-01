@@ -107,7 +107,7 @@ internal fun ChatScreen(
 
         // Footer change signal — triggers auto-scroll when presets/typing/commands change
         val footerSignal = remember(loading, presets.size, commandData, info, showHumanAgentBtn) {
-            loading.hashCode() + presets.size + (commandData?.hashCode() ?: 0) + (info?.hashCode() ?: 0) + showHumanAgentBtn.hashCode()
+            java.util.Objects.hash(loading, presets.size, commandData, info, showHumanAgentBtn)
         }
 
         // Message list

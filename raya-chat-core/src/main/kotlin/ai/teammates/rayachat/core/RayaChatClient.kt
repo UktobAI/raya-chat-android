@@ -37,7 +37,8 @@ class RayaChatClient(
     private val config: RayaChatConfig,
 ) {
     private val appContext = context.applicationContext
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private var sessionJob = SupervisorJob()
+    private var scope = CoroutineScope(sessionJob + Dispatchers.Main)
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
     // ── Internal components ──
@@ -301,6 +302,12 @@ class RayaChatClient(
     }
 
     suspend fun endSession() {
+        // Cancel all pending IO jobs (message persistence, session update, etc.)
+        // to prevent stale writes after deleteAll()
+        sessionJob.cancel()
+        sessionJob = SupervisorJob()
+        scope = CoroutineScope(sessionJob + Dispatchers.Main)
+
         wsManager?.destroy()
         wsManager = null
 

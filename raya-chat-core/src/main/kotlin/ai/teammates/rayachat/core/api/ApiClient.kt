@@ -23,7 +23,7 @@ class ApiClient(
     private val locale: String = "en",
 ) {
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
-    private val httpClient = OkHttpClient()
+    private val httpClient = ai.teammates.rayachat.core.network.HttpClientProvider.client
     private val endpoint = Constants.DEFAULT_ENDPOINT
 
     /**

@@ -67,6 +67,7 @@ internal class RayaChatViewModel(
     // ── Actions ──
 
     fun startChat() {
+        if (_viewMode.value != ViewMode.INTRO) return // guard against double-tap
         client.clearSessionCloseInfo()
         val config = _botConfig.value
         if (config.enableUserForm) {

@@ -58,6 +58,8 @@ fun MarkdownText(
                 setTextColor(argbColor)
                 textSize = fontSizePx / ctx.resources.displayMetrics.scaledDensity
                 setLineSpacing(0f, 1.4f)
+                movementMethod = android.text.method.LinkMovementMethod.getInstance()
+                isClickable = true
             }
         },
         update = { textView ->

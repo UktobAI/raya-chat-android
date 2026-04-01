@@ -32,9 +32,7 @@ class WebSocketManager(
         fun onStatusChange(status: ConnectionStatus)
     }
 
-    private val client = OkHttpClient.Builder()
-        .retryOnConnectionFailure(false)
-        .build()
+    private val client = ai.teammates.rayachat.core.network.HttpClientProvider.client
 
     @Volatile private var webSocket: WebSocket? = null
     private val destroyed = AtomicBoolean(false)
@@ -258,13 +256,14 @@ class WebSocketManager(
             if (destroyed.get()) return@launch
             // No pong received — connection is dead
             stopHeartbeat()
-            webSocket?.let {
-                try {
-                    it.close(Constants.WS_CLOSE_HEARTBEAT_TIMEOUT, "Heartbeat timeout")
-                } catch (_: Exception) {
-                    // Ignore
-                }
+            try {
+                webSocket?.close(Constants.WS_CLOSE_HEARTBEAT_TIMEOUT, "Heartbeat timeout")
+            } catch (_: Exception) {
+                // Close failed — force reconnect
             }
+            // Always trigger reconnect regardless of whether close succeeded
+            webSocket = null
+            scheduleReconnect()
         }
     }
 
