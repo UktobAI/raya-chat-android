@@ -60,6 +60,9 @@ dependencies {
     // Lifecycle
     implementation(libs.lifecycle.runtime)
 
+    // ViewModel Compose integration — viewModel() function
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
+
     // Material (for BottomSheetDialogFragment)
     implementation("com.google.android.material:material:1.12.0")
 

@@ -213,40 +213,51 @@ class RayaChatClient(
         _presets.value = emptyList()
 
         val ts = System.currentTimeMillis()
+
+        // Attachment JSON for local display — uses URIs (small), runs on Main (fast)
+        val attachmentsJson = json.encodeToString(
+            kotlinx.serialization.builtins.ListSerializer(Attachment.serializer()),
+            images.mapIndexed { idx, img ->
+                Attachment(
+                    id = "local-att-$ts-$idx",
+                    url = img.uri.ifBlank { img.base64 },
+                    type = "image",
+                    name = img.name,
+                )
+            }
+        )
+
         val msg = TypeMessage(
             id = "local-img-$ts-${randomSuffix()}",
             sender = 1,
             type = 3,
             content = caption,
             createdAt = (ts / 1000).toString(),
-            attachmentsJson = json.encodeToString(
-                kotlinx.serialization.builtins.ListSerializer(Attachment.serializer()),
-                images.mapIndexed { idx, img ->
-                    Attachment(
-                        id = "local-att-$ts-$idx",
-                        url = img.uri.ifBlank { img.base64 },
-                        type = "image",
-                        name = img.name,
-                    )
-                }
-            ),
+            attachmentsJson = attachmentsJson,
         )
 
+        // Add to UI state immediately (Main thread) — user sees images instantly
         addMessageToState(msg)
 
-        val payload = json.encodeToString(
-            OutboundMessage.serializer(),
-            OutboundMessage(
-                content = caption,
-                images = images.map {
-                    OutboundImage(name = it.name, type = it.type, data = it.base64)
-                }
+        // Heavy JSON serialization (base64 payloads) on background thread to avoid UI jank
+        scope.launch(Dispatchers.Default) {
+            val payload = json.encodeToString(
+                OutboundMessage.serializer(),
+                OutboundMessage(
+                    content = caption,
+                    images = images.map {
+                        OutboundImage(name = it.name, type = it.type, data = it.base64)
+                    }
+                )
             )
-        )
 
-        val sent = wsManager?.send(payload) ?: false
-        if (!sent) {
-            config.onError?.invoke("Message queued — reconnecting...")
+            // Send on Main (WebSocket send is fast — just queues bytes)
+            withContext(Dispatchers.Main) {
+                val sent = wsManager?.send(payload) ?: false
+                if (!sent) {
+                    config.onError?.invoke("Message queued — reconnecting...")
+                }
+            }
         }
     }
 

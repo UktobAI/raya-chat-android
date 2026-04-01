@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import ai.teammates.rayachat.core.RayaChatConfig
 import ai.teammates.rayachat.core.models.ViewMode
 import ai.teammates.rayachat.ui.adapters.AudioRecorderAdapter
@@ -64,11 +65,11 @@ fun RayaChatWidget(
         )
     }
 
-    val viewModel = remember(token) {
-        RayaChatViewModel(context.applicationContext, config)
-    }
-
-    // Cleanup handled by ViewModel.onCleared() — no double-destroy
+    // ViewModel survives configuration changes (rotation, dark mode toggle, etc.)
+    // ViewModelProvider stores it in ViewModelStore — same instance returned after recreation
+    val viewModel: RayaChatViewModel = viewModel(
+        factory = RayaChatViewModelFactory(context.applicationContext, config)
+    )
 
     val botConfig by viewModel.botConfig.collectAsState()
     val configLoading by viewModel.configLoading.collectAsState()
