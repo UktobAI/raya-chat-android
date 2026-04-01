@@ -41,7 +41,7 @@ fun RatingUI(
     onRate: (Int) -> Unit,
 ) {
     val theme = LocalRayaTheme.current
-    val avatarUrl = botIcon?.ifBlank { null } ?: Constants.DEFAULT_BOT_AVATAR
+    val avatarUrl = botIcon?.ifBlank { null }
     var selected by remember { mutableIntStateOf(0) }
     val isAr = locale.startsWith("ar")
     val filteredRatings = RATINGS.filter { r -> options.any { it.toString().toIntOrNull() == r.value } }

@@ -26,7 +26,7 @@ fun FeedbackInput(
     onSubmit: (String) -> Unit,
 ) {
     val theme = LocalRayaTheme.current
-    val avatarUrl = botIcon?.ifBlank { null } ?: Constants.DEFAULT_BOT_AVATAR
+    val avatarUrl = botIcon?.ifBlank { null }
     var feedback by remember { mutableStateOf("") }
     val canSubmit = feedback.isNotBlank() || optional
 

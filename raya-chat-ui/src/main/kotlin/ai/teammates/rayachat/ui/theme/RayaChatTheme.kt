@@ -28,7 +28,7 @@ fun RayaChatTheme(
     val isDark = botConfig.theme == "dark"
     val isRTL = isRTLLocale(locale)
 
-    val gradientHex = botConfig.chatboxGradientColor.ifBlank { "#0047AF" }
+    val gradientHex = botConfig.chatboxGradientColor?.ifBlank { null } ?: "#0047AF"
     val gradientColor = hexToColor(gradientHex)
     val isGradientDark = isDarkColor(gradientHex)
     val gradientForeground = if (isGradientDark) Color.White else Color(0xFF1A1A1A)

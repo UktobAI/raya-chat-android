@@ -28,12 +28,13 @@ fun Header(
     statusBarHeight: Int = 0,
     showBackButton: Boolean = false,
     showCloseButton: Boolean = true,
+    showBotIcon: Boolean = true,
     onBack: (() -> Unit)? = null,
     onClose: (() -> Unit)? = null,
 ) {
     val theme = LocalRayaTheme.current
     val iconColor = theme.gradientForeground
-    val avatarUrl = botIcon?.ifBlank { null } ?: Constants.DEFAULT_BOT_AVATAR
+    val avatarUrl = botIcon?.ifBlank { null }  // null = don't show avatar
 
     // Cache icons — only rebuilt when color changes
     val chevronIcon = remember(iconColor) { RayaIcons.chevronLeft(iconColor, 2f) }
@@ -63,20 +64,22 @@ fun Header(
                         )
                     }
                 }
-                // Bot icon with white container
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.9f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Image(
-                        painter = rememberAsyncImagePainter(avatarUrl),
-                        contentDescription = "Bot",
-                        modifier = Modifier.size(30.dp).clip(CircleShape),
-                        contentScale = ContentScale.Fit,
-                    )
+                // Bot icon with white container — hidden if no icon URL
+                if (showBotIcon && avatarUrl != null) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.9f)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Image(
+                            painter = rememberAsyncImagePainter(avatarUrl),
+                            contentDescription = "Bot",
+                            modifier = Modifier.size(30.dp).clip(CircleShape),
+                            contentScale = ContentScale.Fit,
+                        )
+                    }
                 }
             }
 

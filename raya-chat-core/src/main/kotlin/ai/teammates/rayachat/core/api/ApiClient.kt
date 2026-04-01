@@ -1,5 +1,6 @@
 package ai.teammates.rayachat.core.api
 
+import android.util.Log
 import ai.teammates.rayachat.core.Constants
 import ai.teammates.rayachat.core.models.BotConfigProps
 import ai.teammates.rayachat.core.models.DeviceMetadata
@@ -11,6 +12,8 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.net.URLEncoder
 import java.util.TimeZone
+
+private const val TAG = "RayaChat.API"
 
 /**
  * API client for bot config fetch and WebSocket URL construction.
@@ -36,16 +39,20 @@ class ApiClient(
                 .get()
                 .build()
 
+            Log.d(TAG, "→ GET https://$endpoint/v1/agents/chatbox-config/widget/")
             httpClient.newCall(request).execute().use { response ->
                 val body = response.body?.string()
+                Log.d(TAG, "← ${response.code}: ${body?.take(500) ?: "null"}")
 
                 if (response.isSuccessful && !body.isNullOrBlank()) {
                     json.decodeFromString<BotConfigProps>(body)
                 } else {
+                    Log.w(TAG, "Bot config fetch failed: ${response.code}")
                     BotConfigProps()
                 }
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.e(TAG, "Bot config fetch error: ${e.message}")
             BotConfigProps()
         }
     }

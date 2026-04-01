@@ -31,7 +31,7 @@ fun EndSessionUI(
     onSelect: (Any) -> Unit,
 ) {
     val theme = LocalRayaTheme.current
-    val avatarUrl = botIcon?.ifBlank { null } ?: Constants.DEFAULT_BOT_AVATAR
+    val avatarUrl = botIcon?.ifBlank { null }
 
     BotBubbleWrapper(avatarUrl = avatarUrl, theme = theme) {
         if (message.isNotBlank()) {
@@ -57,7 +57,7 @@ fun EndSessionUI(
 /** Shared wrapper for command UIs rendered as bot bubbles. */
 @Composable
 internal fun BotBubbleWrapper(
-    avatarUrl: String,
+    avatarUrl: String?,
     theme: ai.teammates.rayachat.ui.theme.RayaTheme,
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -65,13 +65,15 @@ internal fun BotBubbleWrapper(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(bottom = 20.dp),
         verticalAlignment = Alignment.Bottom,
     ) {
-        Image(
-            painter = rememberAsyncImagePainter(avatarUrl),
-            contentDescription = "Bot",
-            modifier = Modifier.size(28.dp).clip(CircleShape),
-            contentScale = ContentScale.Fit,
-        )
-        Spacer(Modifier.width(8.dp))
+        if (avatarUrl != null) {
+            Image(
+                painter = rememberAsyncImagePainter(avatarUrl),
+                contentDescription = "Bot",
+                modifier = Modifier.size(28.dp).clip(CircleShape),
+                contentScale = ContentScale.Fit,
+            )
+            Spacer(Modifier.width(8.dp))
+        }
         Column(
             modifier = Modifier
                 .widthIn(max = 320.dp)

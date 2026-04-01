@@ -41,11 +41,11 @@ internal fun IntroScreen(
     val context = LocalContext.current
     val locale = theme.locale
 
-    val heading = botConfig.chatboxSystemHeading.ifBlank { "Hi there Raya is ready to help ✨" }
-    val paragraph = botConfig.chatboxSystemParagraph.ifBlank { "Ask any question — Raya is fast and friendly." }
-    val avatarUrl = botConfig.chatboxChatIcon.ifBlank { Constants.DEFAULT_BOT_AVATAR }
+    val heading = botConfig.chatboxSystemHeading?.ifBlank { null } ?: "Hi there Raya is ready to help ✨"
+    val paragraph = botConfig.chatboxSystemParagraph?.ifBlank { null } ?: "Ask any question — Raya is fast and friendly."
+    val avatarUrl = botConfig.chatboxChatIcon?.ifBlank { null }
 
-    val isGradientDark = isDarkColor(botConfig.chatboxGradientColor.ifBlank { "#0047AF" })
+    val isGradientDark = isDarkColor(botConfig.chatboxGradientColor?.ifBlank { null } ?: "#0047AF")
     val headingColor = if (isGradientDark) Color.White else Color(0xFF14161A)
     val paragraphColor = if (isGradientDark) Color.White.copy(alpha = 0.7f) else Color(0xFF585864)
 
@@ -69,21 +69,23 @@ internal fun IntroScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    // Avatar — white circle with bot icon inside
-                    Box(
-                        modifier = Modifier
-                            .size(56.dp)
-                            .shadow(4.dp, CircleShape)
-                            .clip(CircleShape)
-                            .background(Color.White),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Image(
-                            painter = rememberAsyncImagePainter(avatarUrl),
-                            contentDescription = "Bot avatar",
-                            modifier = Modifier.size(36.dp), // smaller icon inside white circle
-                            contentScale = ContentScale.Fit,
-                        )
+                    // Avatar — only shown if chatbox_chat_icon is configured
+                    if (avatarUrl != null) {
+                        Box(
+                            modifier = Modifier
+                                .size(56.dp)
+                                .shadow(4.dp, CircleShape)
+                                .clip(CircleShape)
+                                .background(Color.White),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Image(
+                                painter = rememberAsyncImagePainter(avatarUrl),
+                                contentDescription = "Bot avatar",
+                                modifier = Modifier.size(36.dp),
+                                contentScale = ContentScale.Fit,
+                            )
+                        }
                     }
                     // Online badge
                     Row(

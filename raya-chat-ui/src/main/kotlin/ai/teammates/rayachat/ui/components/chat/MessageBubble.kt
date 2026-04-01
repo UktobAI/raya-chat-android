@@ -61,7 +61,7 @@ fun MessageBubble(
         return
     }
 
-    val avatarUrl = botIcon?.ifBlank { null } ?: Constants.DEFAULT_BOT_AVATAR
+    val avatarUrl = botIcon?.ifBlank { null }
     val timestamp = formatLocalTime(
         epochSeconds = message.createdAt?.toLongOrNull()
     )
@@ -83,8 +83,8 @@ fun MessageBubble(
             verticalAlignment = Alignment.Bottom,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            // Bot avatar
-            if (!isUser) {
+            // Bot avatar — only shown if icon URL exists
+            if (!isUser && avatarUrl != null) {
                 Image(
                     painter = rememberAsyncImagePainter(avatarUrl),
                     contentDescription = "Bot",
@@ -141,7 +141,7 @@ fun MessageBubble(
                 color = theme.mutedForeground,
                 modifier = Modifier.padding(
                     top = 8.dp,
-                    start = if (!isUser) 36.dp else 0.dp, // align with bubble, not avatar
+                    start = if (!isUser && avatarUrl != null) 36.dp else 0.dp, // align with bubble past avatar
                 ),
             )
         }

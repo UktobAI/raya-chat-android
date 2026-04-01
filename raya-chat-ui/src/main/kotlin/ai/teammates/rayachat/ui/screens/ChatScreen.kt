@@ -54,7 +54,7 @@ internal fun ChatScreen(
     val theme = LocalRayaTheme.current
     val locale = theme.locale
     val keyboardController = LocalSoftwareKeyboardController.current
-    val chatIcon = botConfig.chatboxChatIcon
+    val chatIcon = botConfig.chatboxChatIcon  // null if not configured — components hide avatar when null
     val scope = rememberCoroutineScope()
 
     // Full-screen image viewer state
@@ -235,6 +235,6 @@ private fun ChatFooter(
 
     // Static presets from config (only on first message)
     if (!botConfig.presetOptions.isNullOrEmpty() && messagesSize == 1 && commandData == null) {
-        PresetButtons(presets = botConfig.presetOptions, onPress = onSendPreset)
+        PresetButtons(presets = botConfig.presetOptions.orEmpty(), onPress = onSendPreset)
     }
 }

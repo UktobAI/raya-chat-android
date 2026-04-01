@@ -28,7 +28,7 @@ fun CountdownClose(
     onComplete: () -> Unit,
 ) {
     val theme = LocalRayaTheme.current
-    val avatarUrl = botIcon?.ifBlank { null } ?: Constants.DEFAULT_BOT_AVATAR
+    val avatarUrl = botIcon?.ifBlank { null }
     var count by remember { mutableIntStateOf(Constants.FEEDBACK_COUNTDOWN_SECONDS) }
 
     LaunchedEffect(Unit) {

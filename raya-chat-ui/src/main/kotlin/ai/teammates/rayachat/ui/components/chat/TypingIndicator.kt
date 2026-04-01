@@ -22,7 +22,7 @@ import ai.teammates.rayachat.ui.theme.LocalRayaTheme
 @Composable
 fun TypingIndicator(botIcon: String?) {
     val theme = LocalRayaTheme.current
-    val avatarUrl = botIcon?.ifBlank { null } ?: Constants.DEFAULT_BOT_AVATAR
+    val avatarUrl = botIcon?.ifBlank { null }
     val dotColor = if (theme.isDark) IconDefault else theme.mutedForeground
 
     val infiniteTransition = rememberInfiniteTransition(label = "typing")
@@ -53,13 +53,15 @@ fun TypingIndicator(botIcon: String?) {
         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(bottom = 20.dp),
         verticalAlignment = Alignment.Bottom,
     ) {
-        Image(
-            painter = rememberAsyncImagePainter(avatarUrl),
-            contentDescription = "Bot",
-            modifier = Modifier.size(28.dp).clip(CircleShape),
-            contentScale = ContentScale.Fit,
-        )
-        Spacer(Modifier.width(8.dp))
+        if (avatarUrl != null) {
+            Image(
+                painter = rememberAsyncImagePainter(avatarUrl),
+                contentDescription = "Bot",
+                modifier = Modifier.size(28.dp).clip(CircleShape),
+                contentScale = ContentScale.Fit,
+            )
+            Spacer(Modifier.width(8.dp))
+        }
         Row(
             modifier = Modifier
                 .background(theme.botBubble, RoundedCornerShape(16.dp, 16.dp, 16.dp, 4.dp))

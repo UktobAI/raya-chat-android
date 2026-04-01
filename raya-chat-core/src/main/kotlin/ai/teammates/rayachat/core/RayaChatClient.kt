@@ -130,7 +130,7 @@ class RayaChatClient(
 
         // Add initial bot message if no stored messages
         if (storedMessages.isEmpty() && botConfig != null) {
-            val initialMsg = botConfig.chatboxInitialMsg
+            val initialMsg = botConfig.chatboxInitialMsg.orEmpty()
             if (initialMsg.isNotBlank()) {
                 val welcomeMsg = TypeMessage(
                     id = "initial-${System.currentTimeMillis()}",
