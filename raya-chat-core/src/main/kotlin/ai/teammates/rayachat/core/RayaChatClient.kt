@@ -329,6 +329,7 @@ class RayaChatClient(
         _commandData.value = null
         _presets.value = emptyList()
         _showHumanAgentBtn.value = false
+        _sessionCloseInfo.value = null
         _isConnected.value = false
         _connectionStatus.value = ConnectionStatus.DISCONNECTED
 
