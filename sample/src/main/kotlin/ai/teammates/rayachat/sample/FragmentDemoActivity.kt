@@ -14,7 +14,7 @@ class FragmentDemoActivity : AppCompatActivity() {
         if (savedInstanceState == null) {
             val fragment = RayaChatFragment.newInstance(SAMPLE_TOKEN, "en").apply {
                 onSessionStart = { id -> Log.d("Mode2", "Session started: $id") }
-                onSessionEnd = { Log.d("Mode2", "Session ended") }
+                onSessionEnd = { sid, msgs -> Log.d("Mode2", "Session ended: $sid (${msgs.size} messages)") }
                 onError = { err -> Log.w("Mode2", "Error: $err") }
                 onClose = {
                     Log.d("Mode2", "Chat closed")

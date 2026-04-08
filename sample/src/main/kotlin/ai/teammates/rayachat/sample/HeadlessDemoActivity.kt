@@ -28,7 +28,7 @@ class HeadlessDemoActivity : ComponentActivity() {
                 token = SAMPLE_TOKEN,
                 locale = "en",
                 onSessionStart = { id -> Log.d("Mode4", "Session started: $id") },
-                onSessionEnd = { Log.d("Mode4", "Session ended") },
+                onSessionEnd = { sid, msgs -> Log.d("Mode4", "Session ended: $sid (${msgs.size} messages)") },
                 onError = { err -> Log.w("Mode4", "Error: $err") },
             ),
         )

@@ -24,7 +24,7 @@ class ComposeDemoActivity : ComponentActivity() {
                 locale = "en",
                 imagePickerAdapter = imagePickerAdapter,
                 onSessionStart = { id -> Log.d("Mode1", "Session started: $id") },
-                onSessionEnd = { Log.d("Mode1", "Session ended") },
+                onSessionEnd = { sid, msgs -> Log.d("Mode1", "Session ended: $sid (${msgs.size} messages)") },
                 onError = { err -> Log.w("Mode1", "Error: $err") },
                 onClose = {
                     Log.d("Mode1", "Chat closed")

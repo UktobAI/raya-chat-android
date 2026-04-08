@@ -11,6 +11,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import ai.teammates.rayachat.core.RayaChatConfig
+import ai.teammates.rayachat.core.models.TypeMessage
 import ai.teammates.rayachat.core.models.ViewMode
 import ai.teammates.rayachat.ui.adapters.AudioRecorderAdapter
 import ai.teammates.rayachat.ui.adapters.ImagePickerAdapter
@@ -37,7 +38,7 @@ import ai.teammates.rayachat.ui.theme.RayaChatTheme
  * @param imagePickerAdapter Optional adapter for image selection.
  * @param audioRecorderAdapter Optional adapter for voice recording.
  * @param onSessionStart Called when WebSocket session connects.
- * @param onSessionEnd Called when session ends.
+ * @param onSessionEnd Called when session ends, with the session ID and full message history.
  * @param onError Called on errors.
  * @param onClose Called when user closes the widget.
  */
@@ -48,7 +49,7 @@ fun RayaChatWidget(
     imagePickerAdapter: ImagePickerAdapter? = null,
     audioRecorderAdapter: AudioRecorderAdapter? = null,
     onSessionStart: ((String) -> Unit)? = null,
-    onSessionEnd: (() -> Unit)? = null,
+    onSessionEnd: ((sessionId: String, messages: List<TypeMessage>) -> Unit)? = null,
     onError: ((String) -> Unit)? = null,
     onClose: (() -> Unit)? = null,
 ) {

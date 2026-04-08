@@ -11,6 +11,7 @@ import androidx.fragment.app.FragmentManager
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import ai.teammates.rayachat.core.models.TypeMessage
 import ai.teammates.rayachat.ui.adapters.AudioRecorderAdapter
 import ai.teammates.rayachat.ui.adapters.ImagePickerAdapter
 
@@ -33,7 +34,7 @@ class RayaChatBottomSheet : BottomSheetDialogFragment() {
     var imagePickerAdapter: ImagePickerAdapter? = null
     var audioRecorderAdapter: AudioRecorderAdapter? = null
     var onSessionStart: ((String) -> Unit)? = null
-    var onSessionEnd: (() -> Unit)? = null
+    var onSessionEnd: ((sessionId: String, messages: List<TypeMessage>) -> Unit)? = null
     var onError: ((String) -> Unit)? = null
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {

@@ -302,6 +302,10 @@ class RayaChatClient(
     }
 
     suspend fun endSession() {
+        // Snapshot session data BEFORE clearing — passed to onSessionEnd callback
+        val endedSessionId = sessionId
+        val endedMessages = _messages.value.toList()
+
         // Cancel all pending IO jobs (message persistence, session update, etc.)
         // to prevent stale writes after deleteAll()
         sessionJob.cancel()
@@ -343,7 +347,7 @@ class RayaChatClient(
             }
         }
 
-        config.onSessionEnd?.invoke()
+        config.onSessionEnd?.invoke(endedSessionId, endedMessages)
     }
 
     fun destroy() {
