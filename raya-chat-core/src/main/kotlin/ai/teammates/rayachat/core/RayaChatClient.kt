@@ -450,7 +450,44 @@ class RayaChatClient(
         }
 
         override fun onAttachments(attachments: List<String>, type: String) {
-            // Update STORAGE only — not UI state (per NATIVE_SDK_SPEC.md)
+            // Update in-memory _messages so onSessionEnd exports remote URLs (not local content:// URIs)
+            // This runs on Main (synchronous) before onChatMessage adds the bot response.
+            val currentMessages = _messages.value
+            val targetIndex = if (type == "image") {
+                currentMessages.indexOfLast { it.sender == 1 && it.type == 3 }
+            } else {
+                currentMessages.indexOfLast { it.sender == 1 && it.type == 2 }
+            }
+
+            if (targetIndex >= 0) {
+                val target = currentMessages[targetIndex]
+                val updatedMsg = if (type == "image" && attachments.isNotEmpty()) {
+                    val atts = attachments.map { url ->
+                        Attachment(id = "", url = url, type = "image", name = "")
+                    }
+                    target.copy(
+                        attachmentsJson = json.encodeToString(
+                            kotlinx.serialization.builtins.ListSerializer(Attachment.serializer()),
+                            atts
+                        )
+                    )
+                } else if (type == "audio" && attachments.isNotEmpty()) {
+                    target.copy(
+                        audioJson = json.encodeToString(
+                            AudioData.serializer(),
+                            AudioData(type = "remote", audioUrls = attachments.first())
+                        )
+                    )
+                } else null
+
+                if (updatedMsg != null) {
+                    val updatedList = currentMessages.toMutableList()
+                    updatedList[targetIndex] = updatedMsg
+                    _messages.value = updatedList
+                }
+            }
+
+            // Also persist to Room storage
             scope.launch(Dispatchers.IO) {
                 try {
                     val lastMsg = messageDao.getLastMessage() ?: return@launch
