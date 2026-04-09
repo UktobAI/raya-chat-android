@@ -639,7 +639,7 @@ Collect these in your UI to react to changes:
 
 | State | Type | Description |
 |-------|------|-------------|
-| `messages` | `StateFlow<List<TypeMessage>>` | Full message history (persisted across app restarts) |
+| `messages` | `StateFlow<List<TypeMessage>>` | Full message history (persisted across app restarts). Image/audio attachments are updated with remote URLs once the server processes them. |
 | `currentMessage` | `StateFlow<String>` | Streaming text — grows as chunks arrive, cleared on RESPONSE |
 | `connectionStatus` | `StateFlow<ConnectionStatus>` | `CONNECTING`, `CONNECTED`, `DISCONNECTED`, `RECONNECTING` |
 | `isConnected` | `StateFlow<Boolean>` | `true` when WebSocket is open and healthy |
@@ -855,10 +855,12 @@ Each `TypeMessage` contains:
 | `id` | `String` | Unique message ID |
 | `sender` | `Int` | `1` = user, `2` = bot, `3` = system |
 | `type` | `Int` | `1` = text, `2` = audio, `3` = image |
-| `content` | `String` | Message text (may contain markdown for bot messages) |
-| `createdAt` | `String` | Unix timestamp in seconds |
-| `attachmentsJson` | `String?` | JSON array of image attachment objects |
-| `audioJson` | `String?` | JSON audio data object |
+| `content` | `String?` | Message text (may contain markdown for bot messages) |
+| `createdAt` | `String?` | Unix timestamp in seconds |
+| `attachmentsJson` | `String?` | JSON array of image attachments with **remote URLs** (safe to store in your DB) |
+| `audioJson` | `String?` | JSON audio data with **remote URL** (safe to store in your DB) |
+
+> **Image/audio URLs are server URLs, not local paths.** When the user sends images or audio, the SDK initially stores local URIs. Once the server processes the upload and responds, the SDK automatically replaces them with permanent remote URLs (e.g., `https://s3.amazonaws.com/...`). By the time `onSessionEnd` fires, all attachments contain remote URLs that can be stored in your database or accessed from any device.
 
 ---
 
