@@ -19,9 +19,9 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".ComposeDemoActivity" android:theme="@style/Theme.RayaChatSample" />
-        <activity android:name=".FragmentDemoActivity" android:theme="@style/Theme.RayaChatSample.AppCompat" />
-        <activity android:name=".BottomSheetDemoActivity" android:theme="@style/Theme.RayaChatSample.AppCompat" />
-        <activity android:name=".HeadlessDemoActivity" android:theme="@style/Theme.RayaChatSample" />
+        <activity android:name=".ComposeDemoActivity" android:theme="@style/Theme.RayaChatSample" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".FragmentDemoActivity" android:theme="@style/Theme.RayaChatSample.AppCompat" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".BottomSheetDemoActivity" android:theme="@style/Theme.RayaChatSample.AppCompat" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".HeadlessDemoActivity" android:theme="@style/Theme.RayaChatSample" android:windowSoftInputMode="adjustResize" />
     </application>
 </manifest>

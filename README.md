@@ -109,6 +109,8 @@ fun SupportScreen() {
 
 That's it. The widget handles everything: fetching bot config, showing the intro screen, user form, chat, commands, end session, and reconnection.
 
+> **Keyboard avoidance (API < 35):** Add `android:windowSoftInputMode="adjustResize"` to your Activity in the manifest. On API 35+ this is handled automatically. See [Troubleshooting](#keyboard-covers-the-chat-input) for details.
+
 ### Mode 2: Fragment (XML layout apps)
 
 For apps using XML layouts, Java, or Navigation Component. The Fragment wraps Compose internally — your app does **not** need Compose dependencies.
@@ -1087,7 +1089,18 @@ Check Logcat with tag `RayaChat.API`. Common causes:
 
 ### Keyboard covers the chat input
 
-The SDK uses `Modifier.imePadding()` on the chat screen. If your host Activity has `android:windowSoftInputMode="adjustResize"` or its own `imePadding`, they may conflict. Remove the outer keyboard handling and let the SDK manage it.
+The SDK handles keyboard avoidance differently by API level:
+
+- **API 35+** (Android 15+): The SDK uses Compose `imePadding()` automatically. No action needed.
+- **API < 35**: You **must** add `android:windowSoftInputMode="adjustResize"` to your Activity in the manifest:
+
+```xml
+<activity
+    android:name=".YourChatActivity"
+    android:windowSoftInputMode="adjustResize" />
+```
+
+Without this, the keyboard will overlap the message composer on older Android versions. The SDK cannot set this programmatically — it must be declared in the manifest.
 
 ### App crashes on rotation
 

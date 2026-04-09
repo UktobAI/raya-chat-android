@@ -1,5 +1,6 @@
 package ai.teammates.rayachat.ui
 
+import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.CircularProgressIndicator
@@ -7,7 +8,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import ai.teammates.rayachat.core.RayaChatConfig
@@ -75,18 +75,6 @@ fun RayaChatWidget(
     val botConfig by viewModel.botConfig.collectAsState()
     val configLoading by viewModel.configLoading.collectAsState()
 
-    // Get status bar height (compatible with API 24+)
-    val view = LocalView.current
-    val statusBarHeight = remember {
-        try {
-            val resourceId = view.context.resources.getIdentifier("status_bar_height", "dimen", "android")
-            if (resourceId > 0) {
-                val heightPx = view.context.resources.getDimensionPixelSize(resourceId)
-                (heightPx / view.context.resources.displayMetrics.density).toInt()
-            } else 24 // fallback
-        } catch (_: Exception) { 24 }
-    }
-
     // Show loading while fetching config
     if (configLoading) {
         Box(
@@ -105,7 +93,6 @@ fun RayaChatWidget(
             botConfig = botConfig,
             imagePickerAdapter = imagePickerAdapter,
             audioRecorderAdapter = audioRecorderAdapter,
-            statusBarHeight = statusBarHeight,
             locale = locale,
         )
     }
@@ -117,21 +104,21 @@ private fun RayaChatContent(
     botConfig: ai.teammates.rayachat.core.models.BotConfigProps,
     imagePickerAdapter: ImagePickerAdapter?,
     audioRecorderAdapter: AudioRecorderAdapter?,
-    statusBarHeight: Int,
     locale: String,
 ) {
     val theme = LocalRayaTheme.current
     val viewMode by viewModel.viewMode.collectAsState()
     val showEndChatModal by viewModel.showEndChatModal.collectAsState()
 
-    Box(modifier = Modifier.fillMaxSize().background(theme.background)) {
+    // imePadding only on API 35+ (edge-to-edge). On older APIs, adjustResize handles keyboard.
+    val imeModifier = if (Build.VERSION.SDK_INT >= 35) Modifier.imePadding() else Modifier
+    Box(modifier = Modifier.fillMaxSize().background(theme.background).then(imeModifier)) {
         when (viewMode) {
             ViewMode.INTRO -> {
                 val sessionCloseInfo by viewModel.sessionCloseInfo.collectAsState()
                 IntroScreen(
                     botConfig = botConfig,
                     sessionCloseInfo = sessionCloseInfo,
-                    statusBarHeight = statusBarHeight,
                     onStartChat = viewModel::startChat,
                 )
             }
@@ -139,7 +126,6 @@ private fun RayaChatContent(
             ViewMode.FORM -> {
                 FormScreen(
                     botConfig = botConfig,
-                    statusBarHeight = statusBarHeight,
                     onSubmit = viewModel::submitForm,
                     onBack = viewModel::goBackToIntro,
                 )
@@ -169,7 +155,6 @@ private fun RayaChatContent(
                     showHumanAgentBtn = showHumanAgentBtn,
                     imagePickerAdapter = imagePickerAdapter,
                     audioRecorderAdapter = audioRecorderAdapter,
-                    statusBarHeight = statusBarHeight,
                     onSendMessage = viewModel::sendMessage,
                     onSendImages = viewModel::sendImages,
                     onSendAudio = viewModel::sendAudio,
@@ -190,3 +175,4 @@ private fun RayaChatContent(
         }
     }
 }
+

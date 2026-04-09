@@ -4,12 +4,16 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -42,7 +46,6 @@ internal fun ChatScreen(
     showHumanAgentBtn: Boolean,
     imagePickerAdapter: ImagePickerAdapter?,
     audioRecorderAdapter: AudioRecorderAdapter?,
-    statusBarHeight: Int = 0,
     onSendMessage: (String) -> Unit,
     onSendImages: (List<ImagePayload>, String) -> Unit,
     onSendAudio: (String) -> Unit,
@@ -54,12 +57,32 @@ internal fun ChatScreen(
     val theme = LocalRayaTheme.current
     val locale = theme.locale
     val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
     val chatIcon = botConfig.chatboxChatIcon  // null if not configured — components hide avatar when null
     val scope = rememberCoroutineScope()
 
     // Full-screen image viewer state
     var fullScreenImage by remember { mutableStateOf<String?>(null) }
 
+    // Dismiss keyboard — hide only, do NOT clearFocus().
+    // clearFocus() causes BringIntoView on re-focus which doubles IME padding on API 35+.
+    fun dismissKeyboard() {
+        keyboardController?.hide()
+    }
+
+    // Wrap callbacks to dismiss keyboard on user actions
+    val onSendMessageWithDismiss: (String) -> Unit = { text ->
+        dismissKeyboard()
+        onSendMessage(text)
+    }
+    val onSendPresetWithDismiss: (String) -> Unit = { text ->
+        dismissKeyboard()
+        onSendPreset(text)
+    }
+    val onSendImagesWithDismiss: (List<ImagePayload>, String) -> Unit = { images, caption ->
+        dismissKeyboard()
+        onSendImages(images, caption)
+    }
 
     // Footer content extracted as a remembered lambda that only changes when relevant state changes.
     // This prevents MessageList from recomposing on unrelated state changes (e.g., keystrokes).
@@ -79,8 +102,8 @@ internal fun ChatScreen(
                 chatIcon = chatIcon,
                 locale = locale,
                 theme = theme,
-                onSendMessage = onSendMessage,
-                onSendPreset = onSendPreset,
+                onSendMessage = onSendMessageWithDismiss,
+                onSendPreset = onSendPresetWithDismiss,
                 onSendCommandResponse = onSendCommandResponse,
                 onEndSession = onEndSession,
             )
@@ -92,15 +115,13 @@ internal fun ChatScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(theme.background)
-            .imePadding() // keyboard avoidance
     ) {
         // Header
         Header(
             botIcon = chatIcon,
-            statusBarHeight = statusBarHeight,
             showCloseButton = true,
             onClose = {
-                keyboardController?.hide()
+                dismissKeyboard()
                 onClose()
             },
         )
@@ -110,8 +131,12 @@ internal fun ChatScreen(
             java.util.Objects.hash(loading, presets.size, commandData, info, showHumanAgentBtn)
         }
 
-        // Message list
-        Box(modifier = Modifier.weight(1f)) {
+        // Message list — tap on empty area to dismiss keyboard.
+        // Uses pointerInput instead of clickable to avoid stealing focus from the text field.
+        // Stealing focus triggers BringIntoView on re-focus, which causes keyboard padding issues.
+        Box(modifier = Modifier.weight(1f).pointerInput(Unit) {
+            detectTapGestures { dismissKeyboard() }
+        }) {
             MessageList(
                 messages = messages,
                 currentMessage = currentMessage,
@@ -135,10 +160,11 @@ internal fun ChatScreen(
             hasAudioAdapter = audioRecorderAdapter != null,
             disabled = commandData != null || (loading && currentMessage.isEmpty()),
             locale = locale,
-            onSendMessage = onSendMessage,
-            onSendImages = onSendImages,
+            onSendMessage = onSendMessageWithDismiss,
+            onSendImages = onSendImagesWithDismiss,
             onMicPress = audioRecorderAdapter?.let { { /* TODO: Show AudioRecorderUI overlay */ } },
         )
+
     }
 }
 

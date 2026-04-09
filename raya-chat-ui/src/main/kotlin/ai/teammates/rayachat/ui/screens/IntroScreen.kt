@@ -34,7 +34,6 @@ import ai.teammates.rayachat.ui.theme.RayaTypography
 internal fun IntroScreen(
     botConfig: BotConfigProps,
     sessionCloseInfo: SessionCloseInfo?,
-    statusBarHeight: Int = 0,
     onStartChat: () -> Unit,
 ) {
     val theme = LocalRayaTheme.current
@@ -60,7 +59,8 @@ internal fun IntroScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(theme.gradientColor)
-                    .padding(top = (statusBarHeight + 20).dp, bottom = 60.dp)
+                    .statusBarsPadding()
+                    .padding(top = 20.dp, bottom = 60.dp)
                     .padding(horizontal = 24.dp)
             ) {
                 // Top row: avatar left, online badge right

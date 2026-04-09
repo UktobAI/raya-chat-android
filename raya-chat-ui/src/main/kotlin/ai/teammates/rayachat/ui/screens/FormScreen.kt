@@ -33,7 +33,6 @@ import ai.teammates.rayachat.ui.theme.LocalRayaTheme
 @Composable
 internal fun FormScreen(
     botConfig: BotConfigProps,
-    statusBarHeight: Int = 0,
     onSubmit: (UserInfo) -> Unit,
     onBack: () -> Unit,
 ) {
@@ -68,7 +67,6 @@ internal fun FormScreen(
         // Header with back button
         Header(
             botIcon = botConfig.chatboxChatIcon,
-            statusBarHeight = statusBarHeight,
             showBackButton = true,
             showCloseButton = false,
             showBotIcon = false,

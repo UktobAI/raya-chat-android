@@ -25,7 +25,6 @@ import ai.teammates.rayachat.ui.theme.LocalRayaTheme
 @Composable
 fun Header(
     botIcon: String?,
-    statusBarHeight: Int = 0,
     showBackButton: Boolean = false,
     showCloseButton: Boolean = true,
     showBotIcon: Boolean = true,
@@ -44,7 +43,7 @@ fun Header(
         modifier = Modifier
             .fillMaxWidth()
             .background(theme.gradientColor)
-            .padding(top = statusBarHeight.dp)
+            .statusBarsPadding()
             .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
         Row(
