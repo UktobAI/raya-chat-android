@@ -378,6 +378,14 @@ class RayaChatClient(
         }
         _messages.value = trimmed
 
+        // Fire onMessageUpdate for messages that have final data.
+        // User image (sender=1, type=3) and audio (sender=1, type=2) are SKIPPED here —
+        // they fire from onAttachments() after remote URLs arrive.
+        val isUserMedia = msg.sender == 1 && (msg.type == 3 || msg.type == 2)
+        if (!isUserMedia) {
+            config.onMessageUpdate?.invoke(sessionId, msg)
+        }
+
         // Persist in background
         scope.launch(Dispatchers.IO) {
             try {
@@ -484,6 +492,9 @@ class RayaChatClient(
                     val updatedList = currentMessages.toMutableList()
                     updatedList[targetIndex] = updatedMsg
                     _messages.value = updatedList
+
+                    // Fire onMessageUpdate now — user's media message has remote URLs
+                    config.onMessageUpdate?.invoke(sessionId, updatedMsg)
                 }
             }
 

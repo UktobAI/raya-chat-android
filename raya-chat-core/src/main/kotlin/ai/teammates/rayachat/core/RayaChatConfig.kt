@@ -13,6 +13,9 @@ import ai.teammates.rayachat.core.models.TypeMessage
  * @param onSessionStart Called when the WebSocket session connects, with the session ID.
  * @param onSessionEnd Called when the session ends, with the session ID and full message history
  *   captured before state is cleared. Useful for exporting chat transcripts or analytics.
+ * @param onMessageUpdate Called after every message send/receive with the session ID and the
+ *   individual message. For user image/audio messages, fires only after the server returns remote
+ *   URLs (never local URIs). Useful for real-time sync to your backend.
  * @param onError Called on connection or send errors with an error message.
  * @param onClose Called when the user closes the chat widget.
  */
@@ -21,6 +24,7 @@ data class RayaChatConfig(
     val locale: String = "en",
     val onSessionStart: ((sessionId: String) -> Unit)? = null,
     val onSessionEnd: ((sessionId: String, messages: List<TypeMessage>) -> Unit)? = null,
+    val onMessageUpdate: ((sessionId: String, message: TypeMessage) -> Unit)? = null,
     val onError: ((error: String) -> Unit)? = null,
     val onClose: (() -> Unit)? = null,
 )

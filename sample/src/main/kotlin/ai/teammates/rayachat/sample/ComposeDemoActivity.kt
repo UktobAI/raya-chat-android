@@ -24,6 +24,18 @@ class ComposeDemoActivity : ComponentActivity() {
                 locale = "en",
                 imagePickerAdapter = imagePickerAdapter,
                 onSessionStart = { id -> Log.d("Mode1", "Session started: $id") },
+                onMessageUpdate = { sid, msg ->
+                    Log.d("Mode1", "── onMessageUpdate ──")
+                    Log.d("Mode1", "  sessionId: $sid")
+                    Log.d("Mode1", "  id: ${msg.id}")
+                    Log.d("Mode1", "  sender: ${msg.sender} (${when (msg.sender) { 1 -> "USER"; 2 -> "BOT"; else -> "SYSTEM" }})")
+                    Log.d("Mode1", "  type: ${msg.type} (${when (msg.type) { 1 -> "text"; 2 -> "audio"; 3 -> "image"; else -> "system" }})")
+                    Log.d("Mode1", "  content: ${msg.content}")
+                    Log.d("Mode1", "  createdAt: ${msg.createdAt}")
+                    Log.d("Mode1", "  attachmentsJson: ${msg.attachmentsJson}")
+                    Log.d("Mode1", "  audioJson: ${msg.audioJson}")
+                    Log.d("Mode1", "  ────────────────────")
+                },
                 onSessionEnd = { sid, msgs ->
                     Log.d("Mode1", "═══ SESSION ENDED ═══")
                     Log.d("Mode1", "Session ID: $sid")

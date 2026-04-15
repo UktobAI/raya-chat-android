@@ -31,6 +31,7 @@ Works with **Jetpack Compose**, **XML layout + Fragment**, **BottomSheet**, and 
   - [Handling Streaming Messages](#handling-streaming-messages)
   - [Handling Commands](#handling-commands)
 - [Exporting Session Data (onSessionEnd)](#exporting-session-data-onsessionend)
+- [Real-Time Message Sync (onMessageUpdate)](#real-time-message-sync-onmessageupdate)
 - [Session Persistence](#session-persistence)
 - [Background / Foreground Behavior](#background--foreground-behavior)
 - [Keeping Chat Alive Across Tabs](#keeping-chat-alive-across-tabs)
@@ -233,6 +234,7 @@ All 4 modes accept the same configuration parameters. In packaged UI modes (1-3)
 | `audioRecorderAdapter` | `AudioRecorderAdapter` | No | `null` | Adapter for voice recording. Mic button hidden if not provided. |
 | `onSessionStart` | `(sessionId: String) -> Unit` | No | `null` | Called when WebSocket connects successfully |
 | `onSessionEnd` | `(sessionId: String, messages: List<TypeMessage>) -> Unit` | No | `null` | Called when session ends — receives session ID and full message history |
+| `onMessageUpdate` | `(sessionId: String, message: TypeMessage) -> Unit` | No | `null` | Called after every message send/receive — for real-time sync to your backend |
 | `onError` | `(error: String) -> Unit` | No | `null` | Called on connection or send errors |
 | `onClose` | `() -> Unit` | No | `null` | Called when user taps the close (X) button |
 
@@ -289,6 +291,30 @@ onSessionEnd = { sessionId, messages ->
 ```
 
 See [Exporting Session Data](#exporting-session-data-onsessionend) for a full example.
+
+### `onMessageUpdate(sessionId: String, message: TypeMessage)`
+
+Fires after every message send or receive with the **individual message**. Use it to sync messages to your backend in real-time — so no data is lost if the user closes the app without ending the session.
+
+- For text messages (user or bot): fires immediately
+- For user image/audio messages: fires **only after** the server returns remote URLs (never local paths)
+- Does NOT fire during session end teardown (that's `onSessionEnd`'s job)
+
+```kotlin
+onMessageUpdate = { sessionId, message ->
+    lifecycleScope.launch {
+        api.post("/v1/messages", body = mapOf(
+            "session_id" to sessionId,
+            "message_id" to message.id,
+            "sender" to message.sender,
+            "content" to message.content,
+            "attachments" to message.attachmentsJson,
+        ))
+    }
+}
+```
+
+See [Real-Time Message Sync](#real-time-message-sync-onmessageupdate) for a full example.
 
 ### `onError(error: String)`
 
@@ -863,6 +889,96 @@ Each `TypeMessage` contains:
 | `audioJson` | `String?` | JSON audio data with **remote URL** (safe to store in your DB) |
 
 > **Image/audio URLs are server URLs, not local paths.** When the user sends images or audio, the SDK initially stores local URIs. Once the server processes the upload and responds, the SDK automatically replaces them with permanent remote URLs (e.g., `https://s3.amazonaws.com/...`). By the time `onSessionEnd` fires, all attachments contain remote URLs that can be stored in your database or accessed from any device.
+
+### When to use `onSessionEnd` vs `onMessageUpdate`
+
+| Scenario | Use |
+|----------|-----|
+| Export full transcript after session ends | `onSessionEnd` |
+| Mark session as "closed" in your DB | `onSessionEnd` |
+| Sync every message in real-time so no data is lost on app close | `onMessageUpdate` |
+| Both — real-time sync + close marker | Both callbacks together |
+
+`onSessionEnd` fires **only** on explicit session end (user action, server command, or auto-close). If the user closes the app without ending the session, `onSessionEnd` **never fires** and messages are not synced. Use `onMessageUpdate` to guarantee every message reaches your backend regardless of how the app exits.
+
+---
+
+## Real-Time Message Sync (onMessageUpdate)
+
+The `onMessageUpdate` callback fires after every message send/receive with the individual message. Unlike `onSessionEnd`, it fires **during** the session — so by the time the user closes the app, every message has already been synced.
+
+### When it fires
+
+| Event | Fires? | Message received |
+|-------|--------|-----------------|
+| User sends text | Yes (immediately) | User's message (sender=1, type=1) |
+| Bot responds | Yes (immediately) | Bot's message (sender=2, type=1) |
+| User sends images | Yes (after server returns S3 URLs) | User's image message with remote URLs (sender=1, type=3) |
+| User sends audio | Yes (after server returns S3 URL) | User's audio message with remote URL (sender=1, type=2) |
+| System message (agent joined) | Yes (immediately) | System message (sender=0, type=4) |
+| Bot thinking (STEP/CHUNK) | No | — |
+| Presets/commands | No | — |
+| Session end | No | Use `onSessionEnd` instead |
+
+### Example — sync every message to your API
+
+```kotlin
+RayaChatWidget(
+    token = "your-bot-token",
+    onMessageUpdate = { sessionId, message ->
+        // Called after every send/receive — sync to your backend
+        lifecycleScope.launch {
+            api.post("/v1/messages", body = mapOf(
+                "session_id" to sessionId,
+                "customer_id" to customerId,
+                "message_id" to message.id,
+                "sender" to when (message.sender) { 1 -> "user"; 2 -> "bot"; else -> "system" },
+                "type" to when (message.type) { 1 -> "text"; 2 -> "audio"; 3 -> "image"; else -> "system" },
+                "content" to message.content,
+                "attachments" to message.attachmentsJson,
+                "audio" to message.audioJson,
+                "created_at" to message.createdAt,
+            ))
+        }
+    },
+    onSessionEnd = { sessionId, messages ->
+        // Mark session as closed in your backend
+        lifecycleScope.launch {
+            api.post("/v1/sessions/close", body = mapOf(
+                "session_id" to sessionId,
+            ))
+        }
+    },
+)
+```
+
+### Image message timeline
+
+```
+1. User picks 2 images and taps send
+2. Images appear in chat immediately (local URIs for display)
+3. SDK sends images to server via WebSocket
+4. Server processes and returns RESPONSE with S3 URLs
+5. SDK updates user's message with remote URLs
+6. onMessageUpdate fires with: sender=1, type=3, attachmentsJson=[{url:"https://s3..."}]
+7. onMessageUpdate fires with bot's reply: sender=2, type=1, content="I see your images..."
+```
+
+Steps 1-5 happen internally. The developer's callback only fires at step 6 and 7 — always with clean, storable data.
+
+### What the message contains
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `String` | Unique message ID |
+| `sender` | `Int` | `1` = user, `2` = bot, `0` = system |
+| `type` | `Int` | `1` = text, `2` = audio, `3` = image, `4` = system |
+| `content` | `String?` | Message text or caption |
+| `createdAt` | `String?` | Unix timestamp in seconds |
+| `attachmentsJson` | `String?` | JSON array of image attachments with remote URLs |
+| `audioJson` | `String?` | JSON audio data with remote URL |
+
+> **All URLs are remote server URLs, never local paths.** Safe to store directly in your database.
 
 ---
 

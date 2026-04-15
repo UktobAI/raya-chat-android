@@ -34,6 +34,7 @@ class RayaChatFragment : Fragment() {
     /** Optional callbacks — set these before adding the fragment. */
     var onSessionStart: ((String) -> Unit)? = null
     var onSessionEnd: ((sessionId: String, messages: List<TypeMessage>) -> Unit)? = null
+    var onMessageUpdate: ((sessionId: String, message: TypeMessage) -> Unit)? = null
     var onError: ((String) -> Unit)? = null
     var onClose: (() -> Unit)? = null
 
@@ -54,6 +55,7 @@ class RayaChatFragment : Fragment() {
                     audioRecorderAdapter = audioRecorderAdapter,
                     onSessionStart = onSessionStart,
                     onSessionEnd = onSessionEnd,
+                    onMessageUpdate = onMessageUpdate,
                     onError = onError,
                     onClose = onClose,
                 )

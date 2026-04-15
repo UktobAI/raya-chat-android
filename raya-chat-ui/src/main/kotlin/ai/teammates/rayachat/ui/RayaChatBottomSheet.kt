@@ -35,6 +35,7 @@ class RayaChatBottomSheet : BottomSheetDialogFragment() {
     var audioRecorderAdapter: AudioRecorderAdapter? = null
     var onSessionStart: ((String) -> Unit)? = null
     var onSessionEnd: ((sessionId: String, messages: List<TypeMessage>) -> Unit)? = null
+    var onMessageUpdate: ((sessionId: String, message: TypeMessage) -> Unit)? = null
     var onError: ((String) -> Unit)? = null
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
@@ -64,6 +65,7 @@ class RayaChatBottomSheet : BottomSheetDialogFragment() {
                     audioRecorderAdapter = audioRecorderAdapter,
                     onSessionStart = onSessionStart,
                     onSessionEnd = onSessionEnd,
+                    onMessageUpdate = onMessageUpdate,
                     onError = onError,
                     onClose = { dismiss() },
                 )

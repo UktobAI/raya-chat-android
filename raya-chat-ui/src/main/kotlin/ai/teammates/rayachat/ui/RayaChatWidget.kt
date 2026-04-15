@@ -50,6 +50,7 @@ fun RayaChatWidget(
     audioRecorderAdapter: AudioRecorderAdapter? = null,
     onSessionStart: ((String) -> Unit)? = null,
     onSessionEnd: ((sessionId: String, messages: List<TypeMessage>) -> Unit)? = null,
+    onMessageUpdate: ((sessionId: String, message: TypeMessage) -> Unit)? = null,
     onError: ((String) -> Unit)? = null,
     onClose: (() -> Unit)? = null,
 ) {
@@ -61,6 +62,7 @@ fun RayaChatWidget(
             locale = locale,
             onSessionStart = onSessionStart,
             onSessionEnd = onSessionEnd,
+            onMessageUpdate = onMessageUpdate,
             onError = onError,
             onClose = onClose,
         )
