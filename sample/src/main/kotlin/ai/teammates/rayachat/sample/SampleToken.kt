@@ -1,4 +1,10 @@
 package ai.teammates.rayachat.sample
 
-/** Sample bot token for testing. Replace with your own. */
-const val SAMPLE_TOKEN = "d8f00b84-e5db-4532-b543-42702276b56b"
+/**
+ * Bot token for the sample app.
+ *
+ * Set `rayaChatSampleToken=...` in `local.properties` (gitignored), or export
+ * `RAYA_CHAT_SAMPLE_TOKEN` before building. Get a token from the Teammates.ai dashboard.
+ */
+val SAMPLE_TOKEN: String = BuildConfig.SAMPLE_TOKEN
+    .ifEmpty { error("Set rayaChatSampleToken in local.properties or RAYA_CHAT_SAMPLE_TOKEN env var") }

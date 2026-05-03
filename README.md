@@ -1275,7 +1275,13 @@ The `sample/` module demonstrates all 4 integration modes:
 ./gradlew :sample:installDebug
 ```
 
-> **Note:** The sample app uses a test bot token defined in `sample/.../SampleToken.kt`. Replace it with your own token from the [Teammates.ai](https://teammates.ai) dashboard to test with your bot.
+> **Note:** The sample app reads the bot token from `local.properties` (gitignored). Add the following line, replacing the value with your own token from the [Teammates.ai](https://teammates.ai) dashboard:
+>
+> ```properties
+> rayaChatSampleToken=your-token-here
+> ```
+>
+> Alternatively, export `RAYA_CHAT_SAMPLE_TOKEN` in your shell before building.
 
 | Demo | Mode | What it shows |
 |------|------|--------------|
