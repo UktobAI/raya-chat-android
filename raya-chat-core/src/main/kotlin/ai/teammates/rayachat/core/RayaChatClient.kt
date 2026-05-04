@@ -399,6 +399,37 @@ class RayaChatClient(
         }
     }
 
+    /**
+     * Zip server-returned remote URLs against the local message's original attachments
+     * by index, preserving each attachment's `id` and `name` and swapping in the remote `url`.
+     * Falls back to empty id/name when the server returns more URLs than the local message had.
+     */
+    private fun mergeRemoteImageAttachments(
+        originalJson: String?,
+        remoteUrls: List<String>,
+    ): List<Attachment> {
+        val original: List<Attachment> = originalJson
+            ?.takeIf { it.isNotEmpty() }
+            ?.let {
+                runCatching {
+                    json.decodeFromString(
+                        kotlinx.serialization.builtins.ListSerializer(Attachment.serializer()),
+                        it,
+                    )
+                }.getOrNull()
+            }
+            ?: emptyList()
+        return remoteUrls.mapIndexed { idx, url ->
+            val source = original.getOrNull(idx)
+            Attachment(
+                id = source?.id ?: "",
+                url = url,
+                type = "image",
+                name = source?.name ?: "",
+            )
+        }
+    }
+
     // ── Private: Callback factories ──
 
     private fun createWebSocketCallbacks() = object : WebSocketManager.WebSocketCallbacks {
@@ -470,9 +501,7 @@ class RayaChatClient(
             if (targetIndex >= 0) {
                 val target = currentMessages[targetIndex]
                 val updatedMsg = if (type == "image" && attachments.isNotEmpty()) {
-                    val atts = attachments.map { url ->
-                        Attachment(id = "", url = url, type = "image", name = "")
-                    }
+                    val atts = mergeRemoteImageAttachments(target.attachmentsJson, attachments)
                     target.copy(
                         attachmentsJson = json.encodeToString(
                             kotlinx.serialization.builtins.ListSerializer(Attachment.serializer()),
@@ -504,9 +533,7 @@ class RayaChatClient(
                     val lastMsg = messageDao.getLastMessage() ?: return@launch
 
                     if (type == "image" && attachments.isNotEmpty()) {
-                        val atts = attachments.map { url ->
-                            Attachment(id = "", url = url, type = "image", name = "")
-                        }
+                        val atts = mergeRemoteImageAttachments(lastMsg.attachmentsJson, attachments)
                         val updated = lastMsg.copy(
                             attachmentsJson = json.encodeToString(
                                 kotlinx.serialization.builtins.ListSerializer(Attachment.serializer()),

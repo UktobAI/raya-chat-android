@@ -35,7 +35,7 @@ class ApiClientTest {
             userInfo = UserInfo(fullName = "John Doe", email = "john@test.com", phone = "+1234567890")
         )
 
-        assertThat(url).startsWith("wss://${Constants.DEFAULT_ENDPOINT}/v1/conversations/ws/start")
+        assertThat(url).startsWith("wss://${Constants.DEFAULT_ENDPOINT}/v1/enhanced-chat/ws/stream")
         assertThat(url).contains("integration_type=widget")
         assertThat(url).contains("token=test-token")
         assertThat(url).contains("chat_session_id=session-123")

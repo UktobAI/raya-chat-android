@@ -130,7 +130,7 @@ chatbox_system_paragraph: "Ask any question — Raya is fast and friendly."
 
 ### Connection URL
 ```
-wss://api.workforce.uktob.ai/v1/conversations/ws/start
+wss://api.workforce.uktob.ai/v1/enhanced-chat/ws/stream
   ?integration_type=widget
   &token={token}
   &agent_id=null

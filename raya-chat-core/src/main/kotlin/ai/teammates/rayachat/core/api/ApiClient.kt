@@ -74,7 +74,7 @@ class ApiClient(
         return buildString {
             append("wss://")
             append(endpoint)
-            append("/v1/conversations/ws/start")
+            append("/v1/enhanced-chat/ws/stream")
             append("?integration_type=")
             append(Constants.INTEGRATION_TYPE)
             append("&token=")
