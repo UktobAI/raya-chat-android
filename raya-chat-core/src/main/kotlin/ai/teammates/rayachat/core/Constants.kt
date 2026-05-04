@@ -2,7 +2,7 @@ package ai.teammates.rayachat.core
 
 /** SDK-wide constants matching the React Native SDK v0.1.0. */
 object Constants {
-    const val SDK_VERSION = "0.1.0"
+    const val SDK_VERSION = "0.1.1"
     const val DEFAULT_ENDPOINT = "api.workforce.uktob.ai"
     const val INTEGRATION_TYPE = "widget"
     const val DEFAULT_BOT_AVATAR = "https://app.teammates.ai/api/assets/images/New_raya_agent.png"

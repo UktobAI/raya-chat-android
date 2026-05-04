@@ -68,7 +68,7 @@ In your app module's **`build.gradle.kts`**:
 
 ```kotlin
 dependencies {
-    implementation("com.github.UktobAI.raya-chat-android:raya-chat-ui:0.1.0")
+    implementation("com.github.UktobAI.raya-chat-android:raya-chat-ui:0.1.1")
 }
 ```
 
@@ -78,7 +78,7 @@ This includes `raya-chat-core` automatically. You get all 3 packaged UI modes (W
 
 ```kotlin
 dependencies {
-    implementation("com.github.UktobAI.raya-chat-android:raya-chat-core:0.1.0")
+    implementation("com.github.UktobAI.raya-chat-android:raya-chat-core:0.1.1")
 }
 ```
 
