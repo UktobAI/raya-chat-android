@@ -46,25 +46,45 @@ Works with **Jetpack Compose**, **XML layout + Fragment**, **BottomSheet**, and 
 
 ## Installation
 
-### Packaged UI (includes all screens)
+### 1. Add the JitPack repository
 
-```gradle
+In your project's **`settings.gradle.kts`** (or `settings.gradle`):
+
+```kotlin
+dependencyResolutionManagement {
+    repositories {
+        mavenCentral()
+        google()
+        maven { url = uri("https://jitpack.io") }
+    }
+}
+```
+
+### 2. Add the dependency
+
+#### Packaged UI (includes all screens)
+
+In your app module's **`build.gradle.kts`**:
+
+```kotlin
 dependencies {
-    implementation "ai.teammates:raya-chat-ui:0.1.0"
+    implementation("com.github.UktobAI.raya-chat-android:raya-chat-ui:0.1.0")
 }
 ```
 
 This includes `raya-chat-core` automatically. You get all 3 packaged UI modes (Widget, Fragment, BottomSheet).
 
-### Headless only (no UI — just the chat engine)
+#### Headless only (no UI — just the chat engine)
 
-```gradle
+```kotlin
 dependencies {
-    implementation "ai.teammates:raya-chat-core:0.1.0"
+    implementation("com.github.UktobAI.raya-chat-android:raya-chat-core:0.1.0")
 }
 ```
 
 Smaller footprint (~500KB). You build your own UI. All state + actions available via Kotlin `StateFlow`.
+
+> Use the same version tag for both modules. Latest release: see [github.com/UktobAI/raya-chat-android/releases](https://github.com/UktobAI/raya-chat-android/releases).
 
 ### Permissions
 
