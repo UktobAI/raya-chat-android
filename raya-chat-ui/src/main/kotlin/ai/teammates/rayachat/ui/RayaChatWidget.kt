@@ -11,11 +11,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import ai.teammates.rayachat.core.RayaChatConfig
+import ai.teammates.rayachat.core.adapters.AudioPlayerAdapter
 import ai.teammates.rayachat.core.models.TypeMessage
 import ai.teammates.rayachat.core.models.ViewMode
 import ai.teammates.rayachat.ui.adapters.AudioRecorderAdapter
 import ai.teammates.rayachat.ui.adapters.ImagePickerAdapter
 import ai.teammates.rayachat.ui.components.commands.EndChatModal
+import ai.teammates.rayachat.ui.components.media.DefaultAudioPlayerAdapter
+import ai.teammates.rayachat.ui.components.media.DefaultAudioRecorderAdapter
 import ai.teammates.rayachat.ui.screens.ChatScreen
 import ai.teammates.rayachat.ui.screens.FormScreen
 import ai.teammates.rayachat.ui.screens.IntroScreen
@@ -36,7 +39,13 @@ import ai.teammates.rayachat.ui.theme.RayaChatTheme
  * @param token Bot token from Teammates.ai dashboard.
  * @param locale Language — "en" or "ar". Default: "en".
  * @param imagePickerAdapter Optional adapter for image selection.
- * @param audioRecorderAdapter Optional adapter for voice recording.
+ * @param audioRecorderAdapter Optional adapter for voice recording. If null and the host
+ *   app declared `RECORD_AUDIO` in its manifest, a [DefaultAudioRecorderAdapter] is used
+ *   automatically. If neither is true, the mic button is hidden.
+ * @param audioPlayerAdapter Optional adapter for voice-note playback (preview overlay).
+ *   If null, a [DefaultAudioPlayerAdapter] is constructed automatically. In-bubble audio
+ *   bubbles always construct their own [DefaultAudioPlayerAdapter] regardless of this
+ *   param so each can manage its own playback state independently.
  * @param onSessionStart Called when WebSocket session connects.
  * @param onSessionEnd Called when session ends, with the session ID and full message history.
  * @param onError Called on errors.
@@ -48,6 +57,7 @@ fun RayaChatWidget(
     locale: String = "en",
     imagePickerAdapter: ImagePickerAdapter? = null,
     audioRecorderAdapter: AudioRecorderAdapter? = null,
+    audioPlayerAdapter: AudioPlayerAdapter? = null,
     onSessionStart: ((String) -> Unit)? = null,
     onSessionEnd: ((sessionId: String, messages: List<TypeMessage>) -> Unit)? = null,
     onMessageUpdate: ((sessionId: String, message: TypeMessage) -> Unit)? = null,
@@ -55,6 +65,13 @@ fun RayaChatWidget(
     onClose: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
+
+    // Auto-instantiate defaults when host didn't pass adapters.
+    // Recorder default requires RECORD_AUDIO in the host manifest — returns null otherwise.
+    val effectiveRecorder = audioRecorderAdapter
+        ?: remember(context) { DefaultAudioRecorderAdapter.makeIfAvailable(context) }
+    val effectivePlayer = audioPlayerAdapter
+        ?: remember(context) { DefaultAudioPlayerAdapter(context.applicationContext) }
 
     val config = remember(token, locale) {
         RayaChatConfig(
@@ -94,7 +111,8 @@ fun RayaChatWidget(
             viewModel = viewModel,
             botConfig = botConfig,
             imagePickerAdapter = imagePickerAdapter,
-            audioRecorderAdapter = audioRecorderAdapter,
+            audioRecorderAdapter = effectiveRecorder,
+            audioPlayerAdapter = effectivePlayer,
             locale = locale,
         )
     }
@@ -106,6 +124,7 @@ private fun RayaChatContent(
     botConfig: ai.teammates.rayachat.core.models.BotConfigProps,
     imagePickerAdapter: ImagePickerAdapter?,
     audioRecorderAdapter: AudioRecorderAdapter?,
+    audioPlayerAdapter: AudioPlayerAdapter?,
     locale: String,
 ) {
     val theme = LocalRayaTheme.current
@@ -157,6 +176,7 @@ private fun RayaChatContent(
                     showHumanAgentBtn = showHumanAgentBtn,
                     imagePickerAdapter = imagePickerAdapter,
                     audioRecorderAdapter = audioRecorderAdapter,
+                    audioPlayerAdapter = audioPlayerAdapter,
                     onSendMessage = viewModel::sendMessage,
                     onSendImages = viewModel::sendImages,
                     onSendAudio = viewModel::sendAudio,

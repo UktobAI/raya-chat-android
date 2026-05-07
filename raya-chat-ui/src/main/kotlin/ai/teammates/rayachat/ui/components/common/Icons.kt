@@ -234,4 +234,73 @@ object RayaIcons {
             moveTo(19f, 12f); lineTo(12f, 19f); lineTo(5f, 12f)
         }
     }.build()
+
+    private fun circleOutline(strokeWidth: Float, color: Color, path: androidx.compose.ui.graphics.vector.ImageVector.Builder.() -> Unit): ImageVector =
+        ImageVector.Builder(
+            defaultWidth = 24.dp, defaultHeight = 24.dp, viewportWidth = 24f, viewportHeight = 24f
+        ).apply {
+            path(stroke = SolidColor(color), strokeLineWidth = strokeWidth, strokeLineCap = StrokeCap.Round, strokeLineJoin = StrokeJoin.Round) {
+                moveTo(22f, 12f)
+                arcTo(10f, 10f, 0f, false, true, 12f, 22f)
+                arcTo(10f, 10f, 0f, false, true, 2f, 12f)
+                arcTo(10f, 10f, 0f, false, true, 22f, 12f)
+                close()
+            }
+            this.path()
+        }.build()
+
+    fun circleX(color: Color = Color.Black, strokeWidth: Float = 2f): ImageVector =
+        circleOutline(strokeWidth, color) {
+            path(stroke = SolidColor(color), strokeLineWidth = strokeWidth, strokeLineCap = StrokeCap.Round, strokeLineJoin = StrokeJoin.Round) {
+                moveTo(15f, 9f); lineTo(9f, 15f)
+            }
+            path(stroke = SolidColor(color), strokeLineWidth = strokeWidth, strokeLineCap = StrokeCap.Round, strokeLineJoin = StrokeJoin.Round) {
+                moveTo(9f, 9f); lineTo(15f, 15f)
+            }
+        }
+
+    fun circlePause(color: Color = Color.Black, strokeWidth: Float = 2f): ImageVector =
+        circleOutline(strokeWidth, color) {
+            path(stroke = SolidColor(color), strokeLineWidth = strokeWidth, strokeLineCap = StrokeCap.Round, strokeLineJoin = StrokeJoin.Round) {
+                moveTo(10f, 15f); verticalLineTo(9f)
+            }
+            path(stroke = SolidColor(color), strokeLineWidth = strokeWidth, strokeLineCap = StrokeCap.Round, strokeLineJoin = StrokeJoin.Round) {
+                moveTo(14f, 15f); verticalLineTo(9f)
+            }
+        }
+
+    fun circlePlay(color: Color = Color.Black, strokeWidth: Float = 2f): ImageVector =
+        circleOutline(strokeWidth, color) {
+            path(fill = SolidColor(color), pathFillType = PathFillType.NonZero) {
+                moveTo(10f, 8f); lineTo(16f, 12f); lineTo(10f, 16f); close()
+            }
+        }
+
+    fun circleStop(color: Color = Color.Black, strokeWidth: Float = 2f): ImageVector =
+        circleOutline(strokeWidth, color) {
+            path(fill = SolidColor(color), pathFillType = PathFillType.NonZero) {
+                moveTo(9f, 9f); horizontalLineTo(15f); verticalLineTo(15f); horizontalLineTo(9f); close()
+            }
+        }
+
+    /** Outlined play triangle (no surrounding circle). */
+    fun play(color: Color = Color.Black, strokeWidth: Float = 2f): ImageVector = ImageVector.Builder(
+        defaultWidth = 24.dp, defaultHeight = 24.dp, viewportWidth = 24f, viewportHeight = 24f
+    ).apply {
+        path(stroke = SolidColor(color), strokeLineWidth = strokeWidth, strokeLineCap = StrokeCap.Round, strokeLineJoin = StrokeJoin.Round) {
+            moveTo(6f, 3f); lineTo(20f, 12f); lineTo(6f, 21f); close()
+        }
+    }.build()
+
+    /** Outlined pause bars (no surrounding circle). */
+    fun pause(color: Color = Color.Black, strokeWidth: Float = 2f): ImageVector = ImageVector.Builder(
+        defaultWidth = 24.dp, defaultHeight = 24.dp, viewportWidth = 24f, viewportHeight = 24f
+    ).apply {
+        path(stroke = SolidColor(color), strokeLineWidth = strokeWidth, strokeLineCap = StrokeCap.Round, strokeLineJoin = StrokeJoin.Round) {
+            moveTo(6f, 4f); verticalLineTo(20f)
+        }
+        path(stroke = SolidColor(color), strokeLineWidth = strokeWidth, strokeLineCap = StrokeCap.Round, strokeLineJoin = StrokeJoin.Round) {
+            moveTo(18f, 4f); verticalLineTo(20f)
+        }
+    }.build()
 }

@@ -2,6 +2,7 @@ package ai.teammates.rayachat.ui.components.media
 
 import android.content.Context
 import android.media.AudioAttributes
+import android.media.AudioManager
 import android.media.MediaPlayer
 import android.util.Base64
 import android.util.Log
@@ -58,22 +59,57 @@ class DefaultAudioPlayerAdapter(
         cachedFile = file
 
         val mp = MediaPlayer().apply {
+            // USAGE_MEDIA + CONTENT_TYPE_MUSIC routes through the standard music stream
+            // (controlled by media volume). SPEECH can route through STREAM_VOICE_CALL
+            // on some devices, making playback inaudible at normal media volume.
             setAudioAttributes(
                 AudioAttributes.Builder()
                     .setUsage(AudioAttributes.USAGE_MEDIA)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
                     .build(),
             )
             setDataSource(file.absolutePath)
             prepare()
+            // Belt and suspenders: explicit volume in case some path muted the player.
+            setVolume(1f, 1f)
         }
         mediaPlayer = mp
+        Log.d(TAG, "loadAudio: file=${file.name} bytes=${file.length()} duration=${mp.duration}ms")
         AudioInfo(durationMs = mp.duration.toLong())
     }
 
     override suspend fun play() = withContext(Dispatchers.IO) {
-        AudioFocusCoordinator.enterPlayback(context)
-        try { mediaPlayer?.start() } catch (e: Exception) { Log.w(TAG, "play failed: ${e.message}") }
+        val granted = AudioFocusCoordinator.enterPlayback(context)
+        val mp = mediaPlayer
+        if (mp == null) {
+            Log.w(TAG, "play called but MediaPlayer is null (loadAudio not called or failed)")
+            return@withContext
+        }
+        try {
+            mp.start()
+            // Diagnostic: volume + position to differentiate routing/volume issues
+            // from a player that thinks it's playing but isn't.
+            val am = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+            val musicVol = am?.getStreamVolume(AudioManager.STREAM_MUSIC) ?: -1
+            val musicMax = am?.getStreamMaxVolume(AudioManager.STREAM_MUSIC) ?: -1
+            val voiceVol = am?.getStreamVolume(AudioManager.STREAM_VOICE_CALL) ?: -1
+            val mode = when (am?.mode) {
+                AudioManager.MODE_NORMAL -> "NORMAL"
+                AudioManager.MODE_RINGTONE -> "RINGTONE"
+                AudioManager.MODE_IN_CALL -> "IN_CALL"
+                AudioManager.MODE_IN_COMMUNICATION -> "IN_COMMUNICATION"
+                else -> "UNKNOWN(${am?.mode})"
+            }
+            Log.d(
+                TAG,
+                "play: focusGranted=$granted isPlaying=${mp.isPlaying} pos=${mp.currentPosition}ms " +
+                    "musicVol=$musicVol/$musicMax voiceVol=$voiceVol audioMode=$mode " +
+                    "isWired=${am?.isWiredHeadsetOn} isBT=${am?.isBluetoothA2dpOn} " +
+                    "isSpeaker=${am?.isSpeakerphoneOn}",
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "play failed: ${e.message}", e)
+        }
         Unit
     }
 

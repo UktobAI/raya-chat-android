@@ -176,13 +176,17 @@ class DefaultAudioRecorderAdapter private constructor(
         val buf = ByteArray(bufSize)
         val raf = fileOutput ?: return
         val rec = audioRecord ?: return
+        var diagCounter = 0
         while (isRecording.get()) {
             if (isPaused.get()) {
                 Thread.sleep(50)
                 continue
             }
             val read = rec.read(buf, 0, buf.size)
-            if (read <= 0) continue
+            if (read <= 0) {
+                Log.w(TAG, "AudioRecord.read returned $read — mic may be unavailable")
+                continue
+            }
 
             // Compute peak amplitude across this buffer (s16le, mono).
             var peak = 0
@@ -198,6 +202,11 @@ class DefaultAudioRecorderAdapter private constructor(
             val peakDb = if (peak > 0) 20.0 * log10(peak / 32768.0) else -100.0
             val minDb = -50.0
             val normalized = ((peakDb - minDb) / -minDb).coerceIn(0.0, 1.0)
+
+            // Diagnostic: log raw peak + normalized every ~1s so we can verify mic capture.
+            if (diagCounter++ % 10 == 0) {
+                Log.d(TAG, "read=$read peakRaw=$peak peakDb=${"%.1f".format(peakDb)} normalized=${"%.3f".format(normalized)}")
+            }
             lastPeakNormalized = normalized.toFloat()
 
             try {
@@ -243,6 +252,7 @@ class DefaultAudioRecorderAdapter private constructor(
         AudioFocusCoordinator.exit(context)
 
         val totalSize = file.length()
+        Log.d(TAG, "stopRecording: file=${file.name} bytes=$totalSize pcmBytes=$totalPcmBytes")
         if (totalSize < Constants.MIN_AUDIO_PAYLOAD_BYTES) {
             file.delete()
             outputFile = null

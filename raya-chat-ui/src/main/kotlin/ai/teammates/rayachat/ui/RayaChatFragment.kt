@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import androidx.compose.ui.platform.ComposeView
 import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
+import ai.teammates.rayachat.core.adapters.AudioPlayerAdapter
 import ai.teammates.rayachat.core.models.TypeMessage
 import ai.teammates.rayachat.ui.adapters.AudioRecorderAdapter
 import ai.teammates.rayachat.ui.adapters.ImagePickerAdapter
@@ -30,6 +31,7 @@ class RayaChatFragment : Fragment() {
     /** Optional adapters — set these before adding the fragment. */
     var imagePickerAdapter: ImagePickerAdapter? = null
     var audioRecorderAdapter: AudioRecorderAdapter? = null
+    var audioPlayerAdapter: AudioPlayerAdapter? = null
 
     /** Optional callbacks — set these before adding the fragment. */
     var onSessionStart: ((String) -> Unit)? = null
@@ -53,6 +55,7 @@ class RayaChatFragment : Fragment() {
                     locale = locale,
                     imagePickerAdapter = imagePickerAdapter,
                     audioRecorderAdapter = audioRecorderAdapter,
+                    audioPlayerAdapter = audioPlayerAdapter,
                     onSessionStart = onSessionStart,
                     onSessionEnd = onSessionEnd,
                     onMessageUpdate = onMessageUpdate,

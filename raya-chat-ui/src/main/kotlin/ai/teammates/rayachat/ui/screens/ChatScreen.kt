@@ -20,6 +20,8 @@ import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
 import kotlinx.coroutines.launch
 import ai.teammates.rayachat.core.Constants
+import ai.teammates.rayachat.core.adapters.AudioPlayerAdapter
+import ai.teammates.rayachat.core.adapters.AudioResult
 import ai.teammates.rayachat.core.models.ImagePayload
 import ai.teammates.rayachat.core.models.*
 import ai.teammates.rayachat.ui.adapters.AudioRecorderAdapter
@@ -28,6 +30,8 @@ import ai.teammates.rayachat.ui.components.chat.*
 import ai.teammates.rayachat.ui.components.commands.*
 import ai.teammates.rayachat.ui.components.common.Header
 import ai.teammates.rayachat.ui.components.common.Strings
+import ai.teammates.rayachat.ui.components.media.AudioPreviewUI
+import ai.teammates.rayachat.ui.components.media.AudioRecorderUI
 import ai.teammates.rayachat.ui.components.media.ImageViewer
 import ai.teammates.rayachat.ui.theme.LocalRayaTheme
 import ai.teammates.rayachat.ui.theme.RayaTypography
@@ -46,6 +50,7 @@ internal fun ChatScreen(
     showHumanAgentBtn: Boolean,
     imagePickerAdapter: ImagePickerAdapter?,
     audioRecorderAdapter: AudioRecorderAdapter?,
+    audioPlayerAdapter: AudioPlayerAdapter? = null,
     onSendMessage: (String) -> Unit,
     onSendImages: (List<ImagePayload>, String) -> Unit,
     onSendAudio: (String) -> Unit,
@@ -63,6 +68,9 @@ internal fun ChatScreen(
 
     // Full-screen image viewer state
     var fullScreenImage by remember { mutableStateOf<String?>(null) }
+
+    // Voice-note flow: None → Recording → Preview → (Send | Cancel) → None
+    var audioFlow by remember { mutableStateOf<AudioFlow>(AudioFlow.None) }
 
     // Dismiss keyboard — hide only, do NOT clearFocus().
     // clearFocus() causes BringIntoView on re-focus which doubles IME padding on API 35+.
@@ -150,21 +158,64 @@ internal fun ChatScreen(
         // Full-screen image viewer
         ImageViewer(imageUri = fullScreenImage, onClose = { fullScreenImage = null })
 
-        // Composer — always rendered, disabled during commands
-        // Image picker adapter passed directly — composer handles preview + send
-        MessageComposer(
-            placeholder = if (commandData != null) Strings.get("select_option", locale) else botConfig.chatboxPlaceholder,
-            enableVoiceNote = botConfig.enableVoiceNote,
-            enableImageUpload = botConfig.enableImageUpload,
-            imagePickerAdapter = imagePickerAdapter,
-            hasAudioAdapter = audioRecorderAdapter != null,
-            disabled = commandData != null || (loading && currentMessage.isEmpty()),
-            locale = locale,
-            onSendMessage = onSendMessageWithDismiss,
-            onSendImages = onSendImagesWithDismiss,
-            onMicPress = audioRecorderAdapter?.let { { /* TODO: Show AudioRecorderUI overlay */ } },
-        )
+        // Bottom slot: composer / recorder / preview, depending on audioFlow.
+        when (val flow = audioFlow) {
+            AudioFlow.None -> MessageComposer(
+                placeholder = if (commandData != null) Strings.get("select_option", locale) else botConfig.chatboxPlaceholder,
+                enableVoiceNote = botConfig.enableVoiceNote,
+                enableImageUpload = botConfig.enableImageUpload,
+                imagePickerAdapter = imagePickerAdapter,
+                hasAudioAdapter = audioRecorderAdapter != null,
+                disabled = commandData != null || (loading && currentMessage.isEmpty()),
+                locale = locale,
+                onSendMessage = onSendMessageWithDismiss,
+                onSendImages = onSendImagesWithDismiss,
+                onMicPress = audioRecorderAdapter?.let {
+                    {
+                        dismissKeyboard()
+                        audioFlow = AudioFlow.Recording
+                    }
+                },
+            )
 
+            AudioFlow.Recording -> audioRecorderAdapter?.let { rec ->
+                AudioRecorderUI(
+                    adapter = rec,
+                    onComplete = { result, amps ->
+                        audioFlow = AudioFlow.Preview(result, amps)
+                    },
+                    onCancel = { audioFlow = AudioFlow.None },
+                )
+            } ?: run { audioFlow = AudioFlow.None }
+
+            is AudioFlow.Preview -> AudioPreviewUI(
+                audioResult = flow.result,
+                amplitudes = flow.amps,
+                audioPlayerAdapter = audioPlayerAdapter,
+                onSend = {
+                    val payload = flow.result.base64?.takeIf { it.isNotEmpty() }
+                        ?: flow.result.uri // fallback — sendAudio handles data URIs too
+                    onSendAudio(payload)
+                    audioFlow = AudioFlow.None
+                },
+                onCancel = { audioFlow = AudioFlow.None },
+            )
+        }
+
+    }
+}
+
+/** Voice-note FSM: composer ↔ recorder ↔ preview. */
+private sealed class AudioFlow {
+    object None : AudioFlow()
+    object Recording : AudioFlow()
+    data class Preview(val result: AudioResult, val amps: FloatArray) : AudioFlow() {
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other !is Preview) return false
+            return result == other.result && amps.contentEquals(other.amps)
+        }
+        override fun hashCode(): Int = 31 * result.hashCode() + amps.contentHashCode()
     }
 }
 

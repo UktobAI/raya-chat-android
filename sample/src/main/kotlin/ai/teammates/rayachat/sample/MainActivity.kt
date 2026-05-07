@@ -1,27 +1,47 @@
 package ai.teammates.rayachat.sample
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme(colorScheme = darkColorScheme()) {
+                // Request mic on first launch so voice-note testing works in all demo modes.
+                // SDK auto-hides the mic button if denied; user can re-grant via system settings.
+                val context = LocalContext.current
+                val micLauncher = rememberLauncherForActivityResult(
+                    ActivityResultContracts.RequestPermission()
+                ) { /* result intentionally ignored — SDK handles denied state */ }
+                LaunchedEffect(Unit) {
+                    val granted = ContextCompat.checkSelfPermission(
+                        context, Manifest.permission.RECORD_AUDIO
+                    ) == PackageManager.PERMISSION_GRANTED
+                    if (!granted) micLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                }
+
                 MainScreen(
                     onMode1 = { startActivity(Intent(this, ComposeDemoActivity::class.java)) },
                     onMode2 = { startActivity(Intent(this, FragmentDemoActivity::class.java)) },

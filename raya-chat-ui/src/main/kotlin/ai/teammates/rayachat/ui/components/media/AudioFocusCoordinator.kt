@@ -40,7 +40,7 @@ internal object AudioFocusCoordinator {
     fun enterPlayback(context: Context): Boolean = enter(
         context,
         usage = AudioAttributes.USAGE_MEDIA,
-        contentType = AudioAttributes.CONTENT_TYPE_SPEECH,
+        contentType = AudioAttributes.CONTENT_TYPE_MUSIC,
         focusGain = AudioManager.AUDIOFOCUS_GAIN,
     )
 

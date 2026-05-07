@@ -8,18 +8,23 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
 import ai.teammates.rayachat.core.Constants
 import ai.teammates.rayachat.core.models.Attachment
+import ai.teammates.rayachat.core.models.AudioData
 import ai.teammates.rayachat.core.models.TypeMessage
 import ai.teammates.rayachat.core.util.formatLocalTime
+import ai.teammates.rayachat.ui.components.media.AudioPlayerUI
+import ai.teammates.rayachat.ui.components.media.DefaultAudioPlayerAdapter
 import ai.teammates.rayachat.ui.theme.LocalRayaTheme
 import ai.teammates.rayachat.ui.theme.RayaTypography
 import kotlinx.serialization.json.Json
@@ -43,6 +48,13 @@ fun MessageBubble(
     }
     val hasImages = !attachments.isNullOrEmpty()
 
+    val audio = remember(message.audioJson) {
+        message.audioJson?.let {
+            try { json.decodeFromString<AudioData>(it) } catch (_: Exception) { null }
+        }
+    }
+    val hasAudio = message.type == 2 && audio != null && audio.audioUrls.isNotBlank()
+
     // System message
     if (isSystem) {
         Row(
@@ -65,6 +77,20 @@ fun MessageBubble(
     val timestamp = formatLocalTime(
         epochSeconds = message.createdAt?.toLongOrNull()
     )
+
+    // Audio message — flat row, no bubble bg. Each bubble owns its own player adapter
+    // so playing one audio message naturally pauses others via the OS audio-focus
+    // mechanism. Adapter is cleaned up by AudioPlayerUI's DisposableEffect.
+    if (hasAudio) {
+        AudioBubbleRow(
+            uri = audio!!.audioUrls,
+            isUser = isUser,
+            avatarUrl = avatarUrl,
+            timestamp = timestamp,
+            theme = theme,
+        )
+        return
+    }
 
     Column(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 0.dp),
@@ -215,5 +241,56 @@ private fun BotImageGrid(attachments: List<Attachment>, onImagePress: ((String) 
                 contentScale = ContentScale.Crop,
             )
         }
+    }
+}
+
+@Composable
+private fun AudioBubbleRow(
+    uri: String,
+    isUser: Boolean,
+    avatarUrl: String?,
+    timestamp: String,
+    theme: ai.teammates.rayachat.ui.theme.RayaTheme,
+) {
+    val context = LocalContext.current
+    val adapter = remember(uri) { DefaultAudioPlayerAdapter(context.applicationContext) }
+
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+        horizontalAlignment = if (isUser) Alignment.End else Alignment.Start,
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (!isUser && avatarUrl != null) {
+                Image(
+                    painter = rememberAsyncImagePainter(avatarUrl),
+                    contentDescription = "Bot",
+                    modifier = Modifier.size(28.dp).clip(CircleShape),
+                    contentScale = ContentScale.Fit,
+                )
+                Spacer(Modifier.width(8.dp))
+            }
+            AudioPlayerUI(
+                uri = uri,
+                adapter = adapter,
+                modifier = Modifier.widthIn(max = 280.dp),
+            )
+        }
+
+        if (timestamp.isNotBlank()) {
+            Text(
+                text = timestamp,
+                style = RayaTypography.small,
+                color = theme.mutedForeground,
+                modifier = Modifier.padding(
+                    top = 8.dp,
+                    start = if (!isUser && avatarUrl != null) 36.dp else 0.dp,
+                ),
+            )
+        }
+        Spacer(Modifier.height(20.dp))
     }
 }
