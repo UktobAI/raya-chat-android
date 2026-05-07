@@ -5,6 +5,7 @@ import ai.teammates.rayachat.core.Constants
 import ai.teammates.rayachat.core.models.ConnectionStatus
 import kotlinx.coroutines.*
 import okhttp3.*
+import okio.ByteString.Companion.toByteString
 import java.util.concurrent.atomic.AtomicBoolean
 
 private const val TAG = "RayaChat.WS"
@@ -98,6 +99,27 @@ class WebSocketManager(
             return false
         }
 
+        return false
+    }
+
+    /**
+     * Send a binary WebSocket frame. Used for audio payloads — the server's WS handler
+     * routes binary frames straight to OpenAI Whisper for transcription. Sending audio
+     * as text (via [send]) would be parsed as JSON and silently dropped.
+     *
+     * Not queued: a binary message during disconnect is dropped and returns false.
+     */
+    fun sendBinary(bytes: ByteArray): Boolean {
+        if (destroyed.get()) return false
+        Log.d(TAG, "→ SEND BINARY (${bytes.size} bytes)")
+        if (_status == ConnectionStatus.CONNECTED) {
+            return try {
+                webSocket?.send(bytes.toByteString()) ?: false
+            } catch (e: Exception) {
+                Log.e(TAG, "→ SEND BINARY error: ${e.message}")
+                false
+            }
+        }
         return false
     }
 

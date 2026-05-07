@@ -262,20 +262,50 @@ class RayaChatClient(
         }
     }
 
+    /**
+     * Send a voice note. Accepts either a raw base64 WAV payload or a `data:audio/wav;base64,...`
+     * URI. The audio is decoded and sent as a binary WebSocket frame — the server forwards
+     * binary frames straight to OpenAI Whisper for transcription. (Sending base64 as a text
+     * frame would be silently dropped server-side as malformed JSON — that's the v0.1.2 fix.)
+     */
     fun sendAudio(base64: String) {
         _presets.value = emptyList()
+        val ts = System.currentTimeMillis()
+
+        // Accept raw base64 OR data URI; normalize for both bubble (data URI) and wire (raw).
+        val (raw, dataUri) = if (base64.startsWith("data:")) {
+            val comma = base64.indexOf(',')
+            if (comma < 0) {
+                config.onError?.invoke("Audio could not be encoded for upload.")
+                return
+            }
+            base64.substring(comma + 1) to base64
+        } else {
+            base64 to "data:audio/wav;base64,$base64"
+        }
 
         val msg = TypeMessage(
-            id = "local-audio-${System.currentTimeMillis()}",
+            id = "local-audio-$ts-${randomSuffix()}",
             sender = 1,
             type = 2,
             content = "",
-            createdAt = (System.currentTimeMillis() / 1000).toString(),
-            audioJson = json.encodeToString(AudioData.serializer(), AudioData(type = "local", audioUrls = base64)),
+            createdAt = (ts / 1000).toString(),
+            audioJson = json.encodeToString(
+                AudioData.serializer(),
+                AudioData(type = "local", audioUrls = dataUri),
+            ),
         )
-
         addMessageToState(msg)
-        wsManager?.send(base64)
+
+        val bytes = try {
+            android.util.Base64.decode(raw, android.util.Base64.DEFAULT)
+        } catch (_: Exception) {
+            config.onError?.invoke("Audio could not be encoded for upload.")
+            return
+        }
+
+        val sent = wsManager?.sendBinary(bytes) ?: false
+        if (!sent) config.onError?.invoke("Audio queued — reconnecting...")
     }
 
     fun sendPreset(text: String) {

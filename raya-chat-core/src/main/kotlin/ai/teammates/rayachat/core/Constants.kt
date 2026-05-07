@@ -2,7 +2,7 @@ package ai.teammates.rayachat.core
 
 /** SDK-wide constants matching the React Native SDK v0.1.0. */
 object Constants {
-    const val SDK_VERSION = "0.1.1"
+    const val SDK_VERSION = "0.1.2"
     const val DEFAULT_ENDPOINT = "api.workforce.uktob.ai"
     const val INTEGRATION_TYPE = "widget"
     const val DEFAULT_BOT_AVATAR = "https://app.teammates.ai/api/assets/images/New_raya_agent.png"
@@ -33,6 +33,11 @@ object Constants {
     const val MAX_FEEDBACK_LENGTH = 200
     const val FEEDBACK_COUNTDOWN_SECONDS = 3
     const val STALE_STATE_THRESHOLD_MS = 60_000L
+
+    // Audio
+    const val MAX_AUDIO_DURATION_SECONDS = 180
+    const val MAX_AUDIO_PAYLOAD_BYTES = 10 * 1024 * 1024  // 10 MB
+    const val MIN_AUDIO_PAYLOAD_BYTES = 4096              // ~125 ms
 
     // Valid command types from server
     val VALID_COMMANDS = setOf(
