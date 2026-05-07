@@ -264,9 +264,9 @@ class RayaChatClient(
 
     /**
      * Send a voice note. Accepts either a raw base64 WAV payload or a `data:audio/wav;base64,...`
-     * URI. The audio is decoded and sent as a binary WebSocket frame — the server forwards
-     * binary frames straight to OpenAI Whisper for transcription. (Sending base64 as a text
-     * frame would be silently dropped server-side as malformed JSON — that's the v0.1.2 fix.)
+     * URI. The audio is decoded and sent as a binary WebSocket frame — the server routes
+     * binary frames to its transcription pipeline. (Sending base64 as a text frame would be
+     * silently dropped server-side as malformed JSON — that's the v0.1.2 fix.)
      */
     fun sendAudio(base64: String) {
         _presets.value = emptyList()

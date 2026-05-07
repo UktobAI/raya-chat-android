@@ -82,7 +82,7 @@ private fun MainScreen(
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            "v0.1.1",
+            "v0.1.2",
             fontSize = 12.sp,
             color = Color(0xFF3F3F46),
         )

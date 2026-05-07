@@ -25,10 +25,10 @@ import kotlin.math.abs
 import kotlin.math.log10
 
 /**
- * SDK-shipped audio recorder. Records WAV PCM 16 kHz mono 16-bit — the only formats accepted
- * by OpenAI's Responses API for transcription. Uses [AudioRecord] (raw PCM frames) and writes
- * a 44-byte RIFF/WAV header on stop. Cannot use `MediaRecorder` because it produces M4A/AAC,
- * which Whisper's input schema rejects.
+ * SDK-shipped audio recorder. Records WAV PCM 16 kHz mono 16-bit — the format the server's
+ * transcription pipeline expects. Uses [AudioRecord] (raw PCM frames) and writes a 44-byte
+ * RIFF/WAV header on stop. Cannot use `MediaRecorder` because it produces M4A/AAC, which
+ * the server rejects.
  *
  * The recording file is written to [Context.cacheDir] and base64-encoded when
  * [stopRecording] returns. Orphaned files from prior crashes are purged on construction.
@@ -203,9 +203,10 @@ class DefaultAudioRecorderAdapter private constructor(
             val minDb = -50.0
             val normalized = ((peakDb - minDb) / -minDb).coerceIn(0.0, 1.0)
 
-            // Diagnostic: log raw peak + normalized every ~1s so we can verify mic capture.
+            // Verbose-only diagnostic: raw peak + normalized every ~1s so support can verify
+            // mic capture. Doesn't show in default logcat — `adb logcat -v time *:V` to see.
             if (diagCounter++ % 10 == 0) {
-                Log.d(TAG, "read=$read peakRaw=$peak peakDb=${"%.1f".format(peakDb)} normalized=${"%.3f".format(normalized)}")
+                Log.v(TAG, "read=$read peakRaw=$peak peakDb=${"%.1f".format(peakDb)} normalized=${"%.3f".format(normalized)}")
             }
             lastPeakNormalized = normalized.toFloat()
 
@@ -252,7 +253,7 @@ class DefaultAudioRecorderAdapter private constructor(
         AudioFocusCoordinator.exit(context)
 
         val totalSize = file.length()
-        Log.d(TAG, "stopRecording: file=${file.name} bytes=$totalSize pcmBytes=$totalPcmBytes")
+        Log.v(TAG, "stopRecording: file=${file.name} bytes=$totalSize pcmBytes=$totalPcmBytes")
         if (totalSize < Constants.MIN_AUDIO_PAYLOAD_BYTES) {
             file.delete()
             outputFile = null

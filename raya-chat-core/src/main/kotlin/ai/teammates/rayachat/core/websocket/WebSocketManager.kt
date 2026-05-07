@@ -103,9 +103,9 @@ class WebSocketManager(
     }
 
     /**
-     * Send a binary WebSocket frame. Used for audio payloads — the server's WS handler
-     * routes binary frames straight to OpenAI Whisper for transcription. Sending audio
-     * as text (via [send]) would be parsed as JSON and silently dropped.
+     * Send a binary WebSocket frame. Used for audio payloads — the server routes binary
+     * frames to its transcription pipeline. Sending audio as text (via [send]) would be
+     * parsed as JSON and silently dropped.
      *
      * Not queued: a binary message during disconnect is dropped and returns false.
      */

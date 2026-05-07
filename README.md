@@ -21,6 +21,9 @@ Works with **Jetpack Compose**, **XML layout + Fragment**, **BottomSheet**, and 
 - [Adapters](#adapters)
   - [Image Picker](#imagepickeradapter)
   - [Audio Recorder](#audiorecorderadapter)
+  - [Audio Player](#audioplayeradapter)
+  - [DefaultAudioRecorderAdapter](#defaultaudiorecorderadapter)
+  - [DefaultAudioPlayerAdapter](#defaultaudioplayeradapter)
 - [Features](#features)
 - [Theming](#theming)
 - [RTL / Arabic Support](#rtl--arabic-support)
@@ -68,7 +71,7 @@ In your app module's **`build.gradle.kts`**:
 
 ```kotlin
 dependencies {
-    implementation("com.github.UktobAI.raya-chat-android:raya-chat-ui:0.1.1")
+    implementation("com.github.UktobAI.raya-chat-android:raya-chat-ui:0.1.2")
 }
 ```
 
@@ -78,7 +81,7 @@ This includes `raya-chat-core` automatically. You get all 3 packaged UI modes (W
 
 ```kotlin
 dependencies {
-    implementation("com.github.UktobAI.raya-chat-android:raya-chat-core:0.1.1")
+    implementation("com.github.UktobAI.raya-chat-android:raya-chat-core:0.1.2")
 }
 ```
 
@@ -89,6 +92,21 @@ Smaller footprint (~500KB). You build your own UI. All state + actions available
 ### Permissions
 
 The SDK declares `android.permission.INTERNET` in its own manifest, which merges automatically into your app. You do **not** need to add it yourself.
+
+To enable **voice notes**, declare `RECORD_AUDIO` in your app's manifest and request it at runtime:
+
+```xml
+<!-- AndroidManifest.xml -->
+<uses-permission android:name="android.permission.RECORD_AUDIO" />
+```
+
+```kotlin
+// Before showing the chat (e.g., MainActivity)
+val launcher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* result */ }
+launcher.launch(Manifest.permission.RECORD_AUDIO)
+```
+
+If `RECORD_AUDIO` is not declared, the SDK auto-hides the mic button — no crash. If declared but denied at runtime, the user can still send text and images.
 
 ---
 
@@ -387,16 +405,33 @@ When you use Mode 1, 2, or 3, the SDK handles all of the following automatically
 
 ## Adapters
 
-The SDK uses **pluggable adapters** for native device features (camera, microphone). This keeps the SDK dependency-free — your app provides the native bridge.
+The SDK uses **pluggable adapters** for native device features (camera, microphone, audio playback). For audio, the SDK ships **default adapters** that work out of the box — you only need to provide your own if you want custom behavior.
 
-If you don't provide an adapter, the corresponding button is **hidden** (not disabled):
+| Capability | Default shipped? | What happens without one |
+|---|---|---|
+| Image picker (`imagePickerAdapter`) | No | Image button hidden |
+| Audio recorder (`audioRecorderAdapter`) | **Yes** ([`DefaultAudioRecorderAdapter`](#defaultaudiorecorderadapter)) | If `RECORD_AUDIO` declared in host manifest, default is auto-used; otherwise mic button hidden |
+| Audio player (`audioPlayerAdapter`) | **Yes** ([`DefaultAudioPlayerAdapter`](#defaultaudioplayeradapter)) | Default is always used |
 
-| Adapters provided | Buttons shown in composer |
-|-------------------|--------------------------|
-| None | Emoji + Send only |
+So the minimal voice-note setup is:
+
+```kotlin
+// AndroidManifest.xml
+<uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+// Your composable
+RayaChatWidget(token = "your-bot-token")
+// Mic button appears, recording + playback work out of the box.
+```
+
+If you don't provide an image picker, the image button is **hidden** (not disabled). The mic button follows the same rule when neither a custom recorder nor `RECORD_AUDIO` permission is available.
+
+| Adapters / permissions | Buttons shown in composer |
+|---|---|
+| Nothing | Emoji + Send only |
 | `imagePickerAdapter` only | Emoji + Image + Send |
-| `audioRecorderAdapter` only | Emoji + Mic + Send |
-| Both adapters | Emoji + Image + Mic + Send |
+| `RECORD_AUDIO` declared (SDK default recorder used) | Emoji + Mic + Send |
+| `imagePickerAdapter` + `RECORD_AUDIO` | Emoji + Image + Mic + Send |
 
 ### ImagePickerAdapter
 
@@ -526,6 +561,8 @@ class SupportActivity : ComponentActivity() {
 
 ### AudioRecorderAdapter
 
+You usually don't need to implement this — the SDK ships [`DefaultAudioRecorderAdapter`](#defaultaudiorecorderadapter) which is auto-instantiated when you declare `RECORD_AUDIO` in your manifest. Implement only if you need a custom recording pipeline (custom encoding, audio effects, etc.).
+
 ```kotlin
 import ai.teammates.rayachat.core.adapters.AudioRecorderAdapter
 import ai.teammates.rayachat.core.adapters.AudioResult
@@ -535,69 +572,57 @@ interface AudioRecorderAdapter {
     suspend fun stopRecording(): AudioResult  // { uri: String, base64: String? }
     suspend fun pauseRecording()
     suspend fun resumeRecording()
-    suspend fun getAmplitude(): Float          // 0f..1f for waveform visualization
-    suspend fun cleanup()                      // release MediaRecorder resources
+    suspend fun getAmplitude(): Float          // 0f..1f for live waveform visualization
+    suspend fun cleanup()
 }
 ```
 
-**Example implementation using MediaRecorder:**
+> ⚠️ **Audio format is non-negotiable.** Your `stopRecording()` **must** return a **WAV (PCM 16-bit 16 kHz mono)** base64 payload — that's the format the server expects for transcription. `MediaRecorder` with `MPEG_4 + AAC` will be rejected and the bot will not respond. See `DefaultAudioRecorderAdapter.kt` for a reference implementation that writes a manual RIFF/WAV header from `AudioRecord` PCM frames.
+
+### AudioPlayerAdapter
+
+Used to play voice notes back in the preview overlay and inside chat bubbles. The SDK ships [`DefaultAudioPlayerAdapter`](#defaultaudioplayeradapter) which is always auto-instantiated for the preview; in-bubble playback also uses it. Implement only if you need custom playback (e.g., your own decoder, equalizer, network client).
 
 ```kotlin
-import android.media.MediaRecorder
-import android.util.Base64
-import ai.teammates.rayachat.core.adapters.AudioRecorderAdapter
-import ai.teammates.rayachat.core.adapters.AudioResult
-import java.io.File
+import ai.teammates.rayachat.core.adapters.AudioPlayerAdapter
+import ai.teammates.rayachat.core.adapters.AudioInfo
 
-class MyAudioRecorderAdapter(private val cacheDir: File) : AudioRecorderAdapter {
+interface AudioPlayerAdapter {
+    suspend fun loadAudio(uri: String): AudioInfo  // { durationMs: Long }
+    suspend fun play()
+    suspend fun pause()
+    suspend fun seekTo(positionMs: Long)
+    suspend fun getPosition(): Long
+    suspend fun cleanup()
 
-    private var recorder: MediaRecorder? = null
-    private var outputFile: File? = null
-
-    override suspend fun startRecording() {
-        val file = File(cacheDir, "raya_voice_${System.currentTimeMillis()}.m4a")
-        outputFile = file
-
-        recorder = MediaRecorder().apply {
-            setAudioSource(MediaRecorder.AudioSource.MIC)
-            setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-            setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-            setAudioSamplingRate(44100)
-            setAudioEncodingBitRate(128000)
-            setOutputFile(file.absolutePath)
-            prepare()
-            start()
-        }
-    }
-
-    override suspend fun stopRecording(): AudioResult {
-        recorder?.apply { stop(); release() }
-        recorder = null
-
-        val file = outputFile ?: return AudioResult("", null)
-        val bytes = file.readBytes()
-        val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
-        return AudioResult(uri = file.toURI().toString(), base64 = base64)
-    }
-
-    override suspend fun pauseRecording() { recorder?.pause() }
-    override suspend fun resumeRecording() { recorder?.resume() }
-
-    override suspend fun getAmplitude(): Float {
-        val maxAmplitude = recorder?.maxAmplitude ?: 0
-        return (maxAmplitude / 32767f).coerceIn(0f, 1f)
-    }
-
-    override suspend fun cleanup() {
-        recorder?.release()
-        recorder = null
-        outputFile?.delete()
-        outputFile = null
-    }
+    /** Peak amplitude (0..1) per time-bucket for the in-bubble waveform.
+     *  Return null if amplitudes can't be extracted (UI falls back to a dashed line). */
+    suspend fun getAmplitudes(sampleCount: Int): FloatArray? = null
 }
 ```
 
-> **Permissions:** Your app must request `android.permission.RECORD_AUDIO` at runtime before using the audio recorder. The SDK does **not** request this permission for you.
+`loadAudio` accepts:
+- `data:audio/wav;base64,...` — local data URI (used immediately after recording, before the server returns a remote URL)
+- `https://...` — remote URL (returned by the server after transcription completes)
+- `file://...` or absolute file path — local file
+
+### DefaultAudioRecorderAdapter
+
+SDK-shipped recorder. Records WAV PCM 16 kHz mono 16-bit (the format the server expects). Auto-instantiated by `RayaChatWidget` / `Fragment` / `BottomSheet` when `RECORD_AUDIO` is declared in the host manifest. Returns `null` from `makeIfAvailable` if the permission isn't declared, in which case the SDK hides the mic button.
+
+You don't normally interact with it directly — just declare the permission and it works. If you do want to construct one explicitly:
+
+```kotlin
+val recorder: AudioRecorderAdapter? =
+    DefaultAudioRecorderAdapter.makeIfAvailable(context)
+RayaChatWidget(token = "...", audioRecorderAdapter = recorder)
+```
+
+### DefaultAudioPlayerAdapter
+
+SDK-shipped player. `MediaPlayer`-based, supports data URIs / `https://` / `file://` / absolute paths, computes amplitudes by scanning the WAV PCM. Auto-instantiated for the recording preview; each in-bubble audio message also constructs its own instance so playing one auto-pauses the others through the OS audio-focus mechanism.
+
+> **Permissions:** Add `<uses-permission android:name="android.permission.RECORD_AUDIO" />` to your app manifest and request it at runtime before recording. The SDK does **not** request the permission for you, but it does auto-hide the mic button when the permission is missing — so a forgotten permission is a "silently no voice notes" not a crash.
 
 ---
 
@@ -613,8 +638,10 @@ class MyAudioRecorderAdapter(private val cacheDir: File) : AudioRecorderAdapter 
 ### Media
 - Image upload (up to 5 per message) with preview grid and remove buttons
 - Full-screen image viewer on tap
-- Voice note recording with waveform visualization (requires adapter)
-- Voice note playback with progress bar
+- Voice notes — record / preview / send / playback. Works out of the box (no adapter required) when `RECORD_AUDIO` is declared in the host manifest. WAV PCM 16 kHz mono, sent as a binary WebSocket frame for server-side transcription.
+- Live waveform during recording (40 scrolling bars, ~10 Hz sampling)
+- Static waveform with playback progress in the preview overlay
+- In-bubble waveform player with dashed-line backdrop, played/unplayed bar coloring, end-of-playback fallback for OEMs with flaky `OnCompletionListener`
 
 ### Interactive
 - Preset/suggestion buttons (static from config + dynamic from server)

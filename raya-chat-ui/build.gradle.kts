@@ -49,7 +49,7 @@ afterEvaluate {
                 from(components["release"])
                 groupId = "com.github.UktobAI"
                 artifactId = "raya-chat-ui"
-                version = System.getenv("VERSION_NAME") ?: "0.1.1"
+                version = System.getenv("VERSION_NAME") ?: "0.1.2"
             }
         }
     }
