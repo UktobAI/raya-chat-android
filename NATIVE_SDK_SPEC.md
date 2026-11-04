@@ -25,7 +25,7 @@ Complete feature specification for building iOS (Swift) and Android (Kotlin) SDK
 ### Hardcoded
 | Value | Description |
 |-------|-------------|
-| `api.workforce.uktob.ai` | Production API endpoint (not configurable by developers) |
+| `api.teammates.ai` | Production API endpoint (not configurable by developers) |
 | `widget` | Integration type sent in WS URL |
 | `0.1.0` | SDK version |
 
@@ -77,7 +77,7 @@ All state exposed as reactive streams (StateFlow on Android, Combine on iOS, Rea
 
 ### Bot Config Fetch
 ```
-GET https://api.workforce.uktob.ai/v1/agents/chatbox-config/widget/
+GET https://api.teammates.ai/v1/agents/chatbox-config/widget/
 Headers: Authorization: Bearer {token}
          Content-Type: application/json
 ```
@@ -130,7 +130,7 @@ chatbox_system_paragraph: "Ask any question — Raya is fast and friendly."
 
 ### Connection URL
 ```
-wss://api.workforce.uktob.ai/v1/enhanced-chat/ws/stream
+wss://api.teammates.ai/v1/enhanced-chat/ws/stream
   ?integration_type=widget
   &token={token}
   &agent_id=null
